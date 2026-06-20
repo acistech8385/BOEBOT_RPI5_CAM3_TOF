@@ -1,0 +1,151 @@
+package my.boebot;
+
+import com.pi4j.Pi4J;
+import com.pi4j.context.Context;
+import java.util.Scanner;
+
+/**
+ * Main - Entry point for BOEBOT RPi5 Hardware Test App.
+ *
+ * This app runs directly on the Raspberry Pi 5.
+ * No IP address, username, or password is needed.
+ *
+ * Menu options:
+ *   1  - System info
+ *   2  - Check I2C Servo HAT
+ *   3  - Test PCA9685 Servo HAT
+ *   4  - Test right wheel servo CH14
+ *   5  - Test left wheel servo CH15
+ *   6  - Test both wheel servos
+ *   7  - Test MG90S gripper CH0
+ *   8  - Test Camera Module 3 CAM0
+ *   9  - Test ArduCam ToF CAM1
+ *   10 - Full safe hardware test
+ *   0  - Exit
+ */
+public class Main {
+
+    public static void main(String[] args) {
+
+        // ---- Print startup banner ----
+        System.out.println();
+        System.out.println("====================================");
+        System.out.println(" BOEBOT RPi5 Hardware Test App");
+        System.out.println("====================================");
+        System.out.println(" Robot : BOEBOT");
+        System.out.println(" Board : Raspberry Pi 5");
+        System.out.println(" HAT   : PCA9685 Servo HAT (I2C 0x40)");
+        System.out.println("====================================");
+        System.out.println();
+
+        // ---- Load configuration ----
+        BotConfig config = new BotConfig();
+
+        // ---- Set up logger ----
+        AppLogger logger = new AppLogger();
+        logger.logSystemInfo();
+
+        // ---- Initialize Pi4J for I2C access ----
+        // Pi4J communicates with the PCA9685 Servo HAT via I2C.
+        // This will work on Raspberry Pi with I2C enabled.
+        // On other systems it may show a warning - that is expected.
+        Context pi4j = null;
+        try {
+            System.out.println("[Pi4J] Initializing Pi4J...");
+            pi4j = Pi4J.newAutoContext();
+            System.out.println("[Pi4J] Pi4J initialized successfully.");
+        } catch (Exception e) {
+            System.out.println("[Pi4J] WARNING: Pi4J could not initialize.");
+            System.out.println("[Pi4J] Reason: " + e.getMessage());
+            System.out.println("[Pi4J] I2C tests will not be available.");
+            System.out.println("[Pi4J] (This is expected if not running on Raspberry Pi.)");
+            logger.log("[Pi4J] Init failed: " + e.getMessage());
+        }
+        System.out.println();
+
+        // ---- Main menu loop ----
+        Scanner scanner = new Scanner(System.in);
+        boolean running = true;
+
+        while (running) {
+            printMenu();
+            System.out.print("Enter choice: ");
+
+            String input = scanner.nextLine().trim();
+
+            switch (input) {
+                case "1" -> SystemInfoTest.run(logger);
+
+                case "2" -> I2CDetectTest.run(logger, config);
+
+                case "3" -> PCA9685InitTest.run(logger, config, pi4j);
+
+                case "4" -> RightWheelTest.run(logger, config, pi4j, scanner);
+
+                case "5" -> LeftWheelTest.run(logger, config, pi4j, scanner);
+
+                case "6" -> BothWheelsTest.run(logger, config, pi4j, scanner);
+
+                case "7" -> GripperTest.run(logger, config, pi4j);
+
+                case "8" -> CameraModule3Test.run(logger, config);
+
+                case "9" -> ToFCameraTest.run(logger, config);
+
+                case "10" -> FullHardwareTest.run(logger, config, pi4j, scanner);
+
+                case "0" -> {
+                    System.out.println();
+                    System.out.println("Exiting BOEBOT Hardware Test App.");
+                    System.out.println("Log file saved: " + logger.getLogFilePath());
+                    running = false;
+                }
+
+                default -> {
+                    System.out.println("Invalid choice: \"" + input + "\"");
+                    System.out.println("Please enter a number from the menu.");
+                }
+            }
+
+            if (running) {
+                System.out.println();
+                System.out.println("Press Enter to return to menu...");
+                scanner.nextLine();
+            }
+        }
+
+        // ---- Clean up ----
+        logger.close();
+
+        if (pi4j != null) {
+            try {
+                pi4j.shutdown();
+            } catch (Exception e) {
+                // Not critical
+            }
+        }
+
+        scanner.close();
+        System.out.println("Goodbye.");
+    }
+
+    /** Prints the main menu to the console. */
+    private static void printMenu() {
+        System.out.println();
+        System.out.println("====================================");
+        System.out.println(" BOEBOT RPi5 Hardware Test App");
+        System.out.println("====================================");
+        System.out.println("1  - System info");
+        System.out.println("2  - Check I2C Servo HAT");
+        System.out.println("3  - Test PCA9685 Servo HAT");
+        System.out.println("4  - Test right wheel servo CH14");
+        System.out.println("5  - Test left wheel servo CH15");
+        System.out.println("6  - Test both wheel servos");
+        System.out.println("7  - Test MG90S gripper CH0");
+        System.out.println("8  - Test Camera Module 3 CAM0");
+        System.out.println("9  - Test ArduCam ToF CAM1");
+        System.out.println("10 - Full safe hardware test");
+        System.out.println("0  - Exit");
+        System.out.println("====================================");
+    }
+}
