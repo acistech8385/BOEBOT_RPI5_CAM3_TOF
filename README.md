@@ -3,7 +3,8 @@
 A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to test all BOEBOT hardware.
 
 > **This app does not need an IP address, username, or password.**  
-> It runs locally on the Raspberry Pi — you SSH in once, clone the repo, and run the app.
+> It runs locally on the Raspberry Pi — you SSH in once, clone the repo, and run the app.  
+> Do not install Claude Code on the Raspberry Pi. Use the normal Raspberry Pi terminal only.
 
 ---
 
@@ -12,8 +13,8 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 | Part | Details |
 |------|---------|
 | Robot | BOEBOT |
-| Board | Raspberry Pi 5 |
-| Servo HAT | PCA9685 — I2C bus 1, address 0x40 |
+| Board | Raspberry Pi 5 Model B |
+| Servo HAT | PCA9685 — I2C bus 1, address 0x40, 50 Hz |
 | Right Wheel | Parallax continuous rotation servo — Servo HAT channel 14 |
 | Left Wheel | Parallax continuous rotation servo — Servo HAT channel 15 |
 | Gripper | MG90S servo — Servo HAT channel 0 |
@@ -35,59 +36,68 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 5  - Test left wheel servo CH15
 6  - Test both wheel servos
 7  - Test MG90S gripper CH0
-8  - Test Camera Module 3 CAM0
-9  - Test ArduCam ToF CAM1
-10 - Full safe hardware test
+8  - Camera Module 3 still capture CAM0
+9  - Camera Module 3 live preview CAM0
+10 - ArduCam ToF CAM1 check
+11 - Full safe hardware test
 0  - Exit
 ====================================
 ```
 
 ---
 
-## Setup Instructions (on the Raspberry Pi)
+## Raspberry Pi Setup (First Time)
 
-### Step 1 — Clone the repository
+Do all of these steps in the **Raspberry Pi terminal** (SSH or local).  
+Do **not** run these on Windows.
+
+### Step 1 — Create a project folder and clone the repo
 
 ```bash
+mkdir -p ~/BOEBOT_RPI5_CAM3_TOF
+cd ~/BOEBOT_RPI5_CAM3_TOF
 git clone https://github.com/acistech8385/BOEBOT_RPI5_CAM3_TOF.git
-```
-
-### Step 2 — Enter the project folder
-
-```bash
 cd BOEBOT_RPI5_CAM3_TOF
 ```
 
-### Step 3 — Make the scripts executable
+Your project path will be: `~/BOEBOT_RPI5_CAM3_TOF/BOEBOT_RPI5_CAM3_TOF`
+
+### Step 2 — Make scripts executable
 
 ```bash
 chmod +x scripts/install_boebot.sh scripts/run_boebot_test.sh
 ```
 
-### Step 4 — Run the install script
+### Step 3 — Run the install script
 
-This installs Java 17, Maven, i2c-tools, and rpicam-apps.  
-Safe to run multiple times.
+The install script is **idempotent** — safe to run more than once.  
+It installs: Java 17, Maven, i2c-tools, rpicam-apps, Python3, ArduCam ToF SDK.
 
 ```bash
 ./scripts/install_boebot.sh
 ```
 
-After the install script finishes, **reboot** if I2C was not already enabled:
+### Step 4 — Reboot if needed
+
+If the install script says **REBOOT REQUIRED**, reboot now:
 
 ```bash
 sudo reboot
 ```
 
-### Step 5 — Check I2C manually
+After reboot, re-open a terminal and go back to the project:
 
-After reboot, verify that the PCA9685 Servo HAT is detected:
+```bash
+cd ~/BOEBOT_RPI5_CAM3_TOF/BOEBOT_RPI5_CAM3_TOF
+```
+
+### Step 5 — Verify I2C sees the PCA9685 Servo HAT
 
 ```bash
 sudo i2cdetect -y 1
 ```
 
-**Expected output** — you should see `40` in the grid:
+**Expected output** — look for `40` in the grid at row `40:`:
 
 ```
      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
@@ -98,9 +108,10 @@ sudo i2cdetect -y 1
 ```
 
 If you do **not** see `40`:
-- Check that the PCA9685 Servo HAT is firmly seated on the GPIO pins.
+- Check the PCA9685 Servo HAT is firmly seated on the GPIO pins.
 - Check power: the HAT may need 5V via its dedicated power connector.
-- Check the I2C address jumpers (A0-A5 pads) on the HAT — all open = 0x40.
+- Check I2C address jumpers (A0–A5 solder pads on HAT) — all open = 0x40.
+- Check that `/dev/i2c-1` exists: `ls /dev/i2c*`
 
 ### Step 6 — Run the hardware test app
 
@@ -108,7 +119,25 @@ If you do **not** see `40`:
 ./scripts/run_boebot_test.sh
 ```
 
-The script builds the app with Maven and runs it.
+The script builds the app with Maven (first run downloads dependencies) and launches the menu.
+
+---
+
+## Getting Updates (After First Setup)
+
+When code is updated on GitHub:
+
+```bash
+cd ~/BOEBOT_RPI5_CAM3_TOF/BOEBOT_RPI5_CAM3_TOF
+git pull
+./scripts/run_boebot_test.sh
+```
+
+If there are new install requirements, run the install script again — it is safe to run multiple times:
+
+```bash
+./scripts/install_boebot.sh
+```
 
 ---
 
@@ -116,28 +145,55 @@ The script builds the app with Maven and runs it.
 
 > **ALWAYS lift the BOEBOT wheels off the ground before running any wheel servo test.**
 
-Before any wheel test, the app will ask you to type exactly:
+Before any wheel test (options 4, 5, 6, and the wheel section of option 11),  
+the app will ask you to type **exactly**:
 
 ```
 WHEELS_LIFTED
 ```
 
-If you type anything else (or press Enter), the wheel test is **cancelled**.
+If you type anything else, the wheel test is **cancelled immediately**.
 
 Wheel movement duration is limited to **1 second maximum** per direction.
 
 ---
 
+## Camera Tests
+
+### Option 8 — Still Capture
+
+Captures a single image using `rpicam-still` (Bookworm) or `libcamera-still` (Bullseye).  
+Works in SSH sessions (no display needed).  
+Image is saved to `logs/<hostname>/cam3_still_<timestamp>.jpg`.
+
+### Option 9 — Live Preview
+
+Opens a live camera preview window on the screen.  
+**Requires a display** (HDMI/DSI screen, VNC, or X11 forwarding).  
+Press **Enter** in the terminal to stop the preview.
+
+If no display is detected (headless SSH), the app will explain this and suggest option 8 instead.
+
+### Option 10 — ArduCam ToF CAM1 Check
+
+Checks if the ArduCam ToF SDK is installed at `~/Arducam_tof_camera`.  
+Lists available Python example files.  
+In interactive mode, offers to run a preview example (requires display).  
+Press **Enter** to stop the preview, or **Ctrl+C** if Enter does not respond.
+
+---
+
 ## Log Files
 
-Logs are saved automatically in:
+Logs are saved automatically to:
 
 ```
 logs/<hostname>/boebot_<timestamp>.log
 ```
 
-Each test prints **PASS** or **FAIL** and this is recorded in the log file.  
-System info, OS version, Java version, and hostname are logged at startup.
+Each test prints **PASS** or **FAIL** in both the console and the log file.  
+System info, OS version, Java version, and hostname are logged at startup.  
+Still images are saved to the same `logs/<hostname>/` folder.
 
 ---
 
@@ -145,13 +201,19 @@ System info, OS version, Java version, and hostname are logged at startup.
 
 | Problem | Fix |
 |---------|-----|
-| `i2cdetect` shows no devices | Enable I2C: `sudo raspi-config` → Interface Options → I2C |
-| PCA9685 not found at 0x40 | Check HAT is seated on GPIO pins, check power connector |
+| `i2cdetect` shows no devices | Run `./scripts/install_boebot.sh` or: `sudo raspi-config` → Interface Options → I2C |
+| `/dev/i2c-1` missing after enabling I2C | Reboot: `sudo reboot` |
+| PCA9685 not found at 0x40 | Check HAT is seated on GPIO pins, check HAT power connector |
 | `rpicam-still` not found | `sudo apt-get install -y rpicam-apps` |
-| ArduCam ToF not found | Install SDK from: https://github.com/ArduCAM/Arducam_tof_camera |
+| `libcamera-still` not found | `sudo apt-get install -y libcamera-apps` |
+| Camera: no image created | Check ribbon cable in CAM0, check: `rpicam-still --list-cameras` |
+| Preview: no window appears | Need a display or VNC session; headless SSH does not have a display |
+| ArduCam ToF not found | Run `./scripts/install_boebot.sh` to auto-clone the SDK |
+| ArduCam SDK fails to install | Try manually: `bash ~/Arducam_tof_camera/Install_dependencies_raspbian.sh` |
 | I2C permission error | `sudo usermod -aG i2c $USER` then log out and back in |
 | Java not found | `sudo apt-get install -y openjdk-17-jdk` |
 | Maven not found | `sudo apt-get install -y maven` |
+| Python3 not found | `sudo apt-get install -y python3` |
 
 ---
 
@@ -162,34 +224,35 @@ BOEBOT_RPI5_CAM3_TOF/
 ├── README.md
 ├── pom.xml
 ├── config/
-│   └── boebot.properties         Hardware configuration
+│   └── boebot.properties              Hardware configuration
 ├── scripts/
-│   ├── install_boebot.sh         Install dependencies on RPi
-│   └── run_boebot_test.sh        Build and run the app
+│   ├── install_boebot.sh              Install all dependencies on Raspberry Pi
+│   └── run_boebot_test.sh             Build and run the app
 └── src/main/java/my/boebot/
-    ├── Main.java                  Entry point and menu loop
-    ├── BotConfig.java             Loads config/boebot.properties
-    ├── AppLogger.java             Saves test results to log files
-    ├── PCA9685.java               I2C driver for PCA9685 Servo HAT
-    ├── WheelSafety.java           WHEELS_LIFTED safety confirmation
-    ├── SystemInfoTest.java        Test 1: System information
-    ├── I2CDetectTest.java         Test 2: I2C detect / check 0x40
-    ├── PCA9685InitTest.java       Test 3: PCA9685 initialization
-    ├── RightWheelTest.java        Test 4: Right wheel servo CH14
-    ├── LeftWheelTest.java         Test 5: Left wheel servo CH15
-    ├── BothWheelsTest.java        Test 6: Both wheel servos
-    ├── GripperTest.java           Test 7: MG90S gripper servo CH0
-    ├── CameraModule3Test.java     Test 8: Camera Module 3 CAM0
-    ├── ToFCameraTest.java         Test 9: ArduCam ToF CAM1
-    └── FullHardwareTest.java      Test 10: Full safe hardware test
+    ├── Main.java                       Entry point and menu loop
+    ├── BotConfig.java                  Loads config/boebot.properties
+    ├── AppLogger.java                  Saves logs to logs/<hostname>/
+    ├── PCA9685.java                    I2C driver for PCA9685 Servo HAT
+    ├── WheelSafety.java                WHEELS_LIFTED safety confirmation
+    ├── SystemInfoTest.java             Option 1:  System information
+    ├── I2CDetectTest.java              Option 2:  I2C detect / confirm 0x40
+    ├── PCA9685InitTest.java            Option 3:  PCA9685 initialization
+    ├── RightWheelTest.java             Option 4:  Right wheel servo CH14
+    ├── LeftWheelTest.java              Option 5:  Left wheel servo CH15
+    ├── BothWheelsTest.java             Option 6:  Both wheel servos
+    ├── GripperTest.java                Option 7:  MG90S gripper servo CH0
+    ├── CameraModule3Test.java          Option 8:  Camera Module 3 still capture
+    ├── CameraModule3PreviewTest.java   Option 9:  Camera Module 3 live preview
+    ├── ToFCameraTest.java              Option 10: ArduCam ToF CAM1 check
+    └── FullHardwareTest.java           Option 11: Full safe hardware test
 ```
 
 ---
 
 ## Notes
 
-- This app does **not** require SSH credentials inside the app.
-  You SSH into the Raspberry Pi once, then the app runs locally.
-- The ArduCam ToF test is a **detection check only** — it does not start the camera.
+- This app runs **directly on the Raspberry Pi**. No SSH credentials needed inside the app.
+- **Do not install Claude Code on the Raspberry Pi.** Use the normal Raspberry Pi terminal.
 - BOEBOT has no line sensors — line sensor code is not included.
-- Built with Java 17 and Pi4J 2.x.
+- No Sumobot code is included.
+- Built with Java 17 and Pi4J 2.6.0 (I2C via LinuxFS provider).

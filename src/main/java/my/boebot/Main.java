@@ -18,9 +18,10 @@ import java.util.Scanner;
  *   5  - Test left wheel servo CH15
  *   6  - Test both wheel servos
  *   7  - Test MG90S gripper CH0
- *   8  - Test Camera Module 3 CAM0
- *   9  - Test ArduCam ToF CAM1
- *   10 - Full safe hardware test
+ *   8  - Camera Module 3 still capture CAM0
+ *   9  - Camera Module 3 live preview CAM0
+ *   10 - ArduCam ToF CAM1 check
+ *   11 - Full safe hardware test
  *   0  - Exit
  */
 public class Main {
@@ -90,9 +91,11 @@ public class Main {
 
                 case "8" -> CameraModule3Test.run(logger, config);
 
-                case "9" -> ToFCameraTest.run(logger, config);
+                case "9" -> CameraModule3PreviewTest.run(logger, config, scanner);
 
-                case "10" -> FullHardwareTest.run(logger, config, pi4j, scanner);
+                case "10" -> ToFCameraTest.run(logger, config, scanner);
+
+                case "11" -> FullHardwareTest.run(logger, config, pi4j, scanner);
 
                 case "0" -> {
                     System.out.println();
@@ -142,9 +145,10 @@ public class Main {
         System.out.println("5  - Test left wheel servo CH15");
         System.out.println("6  - Test both wheel servos");
         System.out.println("7  - Test MG90S gripper CH0");
-        System.out.println("8  - Test Camera Module 3 CAM0");
-        System.out.println("9  - Test ArduCam ToF CAM1");
-        System.out.println("10 - Full safe hardware test");
+        System.out.println("8  - Camera Module 3 still capture CAM0");
+        System.out.println("9  - Camera Module 3 live preview CAM0");
+        System.out.println("10 - ArduCam ToF CAM1 check");
+        System.out.println("11 - Full safe hardware test");
         System.out.println("0  - Exit");
         System.out.println("====================================");
     }

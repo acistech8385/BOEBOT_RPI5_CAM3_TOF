@@ -4,7 +4,7 @@ import com.pi4j.context.Context;
 import java.util.Scanner;
 
 /**
- * FullHardwareTest - Menu Option 10: Run all hardware tests in sequence.
+ * FullHardwareTest - Menu Option 11: Run all hardware tests in sequence.
  *
  * Runs these tests in order:
  *   1. System info
@@ -26,14 +26,14 @@ public class FullHardwareTest {
                             Context pi4j, Scanner scanner) {
         System.out.println();
         System.out.println("============================================");
-        System.out.println("  Test 10: Full Safe Hardware Test");
+        System.out.println("  Test 11: Full Safe Hardware Test");
         System.out.println("============================================");
         System.out.println("  Running all BOEBOT hardware tests.");
         System.out.println("  Wheel tests will be asked separately.");
         System.out.println();
 
         logger.logSeparator();
-        logger.log("TEST 10: Full Safe Hardware Test - Begin");
+        logger.log("TEST 11: Full Safe Hardware Test - Begin");
 
         // Track results
         boolean sysOk      = false;
@@ -78,8 +78,9 @@ public class FullHardwareTest {
 
         // ---- Test 6: ArduCam ToF ----
         System.out.println();
-        System.out.println("[FULL TEST] Running Test 9: ArduCam ToF...");
-        tofOk = ToFCameraTest.run(logger, config);
+        System.out.println("[FULL TEST] Running Test 10: ArduCam ToF CAM1...");
+        // Pass null scanner = non-interactive (skip run-preview prompt in full test)
+        tofOk = ToFCameraTest.run(logger, config, null);
         pause();
 
         // ---- Wheel Tests (optional) ----
@@ -125,8 +126,8 @@ public class FullHardwareTest {
             printResult("Test 5  Left Wheel CH15     ", leftOk);
         }
         printResult("Test 7  Gripper CH0         ", gripperOk);
-        printResult("Test 8  Camera Module 3 CAM0", cam3Ok);
-        printResult("Test 9  ArduCam ToF CAM1    ", tofOk);
+        printResult("Test 8  Camera Module 3 Still CAM0", cam3Ok);
+        printResult("Test 10 ArduCam ToF CAM1        ", tofOk);
         System.out.println("============================================");
 
         logger.logSeparator();
