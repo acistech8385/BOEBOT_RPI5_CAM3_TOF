@@ -186,6 +186,28 @@ else
     fi
 fi
 
+# ---- Helper: pip install ArducamDepthCamera + dependencies ----
+pip_install_arducam() {
+    echo "  Installing: ArducamDepthCamera opencv-python numpy<2.0.0 via pip3..."
+    # Try plain pip3 first; if blocked by externally-managed-environment, use --break-system-packages
+    if pip3 install ArducamDepthCamera opencv-python "numpy<2.0.0" --quiet 2>/dev/null; then
+        print_ok "ArducamDepthCamera installed via pip3."
+        return 0
+    elif pip3 install --break-system-packages ArducamDepthCamera opencv-python "numpy<2.0.0" --quiet 2>/dev/null; then
+        print_ok "ArducamDepthCamera installed via pip3 (--break-system-packages)."
+        return 0
+    else
+        print_warn "pip3 install failed. Trying with sudo..."
+        if sudo pip3 install --break-system-packages ArducamDepthCamera opencv-python "numpy<2.0.0" --quiet 2>/dev/null; then
+            print_ok "ArducamDepthCamera installed via sudo pip3."
+            return 0
+        fi
+    fi
+    print_warn "pip3 install failed. Try manually:"
+    echo "    pip3 install --break-system-packages ArducamDepthCamera opencv-python \"numpy<2.0.0\""
+    return 1
+}
+
 # ---- Helper: run ArduCam install script (tries both known filenames) ----
 run_arducam_install() {
     local tof_dir="$1"
@@ -197,20 +219,17 @@ run_arducam_install() {
 
     if [ -n "$script" ]; then
         echo "  Running: bash $script"
-        echo "  (This may take a few minutes — please wait...)"
+        echo "  (Answering 'n' to reboot prompt — will not reboot mid-install.)"
         echo ""
-        if bash "$script"; then
-            print_ok "ArduCam SDK dependencies installed."
-            return 0
-        else
-            print_warn "ArduCam install script finished with warnings/errors."
-            echo "  Retry manually: bash $script"
-            return 1
-        fi
+        # Pass 'n' to auto-answer the 'reboot now? (y/n)' prompt
+        echo "n" | bash "$script" 2>&1 | grep -v "^$" || true
+        echo ""
+        # Always run pip install after the script (recommended by ArduCam installer)
+        pip_install_arducam
     else
         print_warn "No ArduCam install script found in $tof_dir"
-        echo "  Check: https://github.com/ArduCAM/Arducam_tof_camera"
-        return 1
+        echo "  Trying pip install directly..."
+        pip_install_arducam
     fi
 }
 
