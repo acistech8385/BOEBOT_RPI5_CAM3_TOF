@@ -186,6 +186,34 @@ else
     fi
 fi
 
+# ---- Helper: run ArduCam install script (tries both known filenames) ----
+run_arducam_install() {
+    local tof_dir="$1"
+    local script=""
+    # Try correct name first, then fallback for older SDK versions
+    if   [ -f "$tof_dir/Install_dependencies.sh" ];          then script="$tof_dir/Install_dependencies.sh"
+    elif [ -f "$tof_dir/Install_dependencies_raspbian.sh" ];  then script="$tof_dir/Install_dependencies_raspbian.sh"
+    fi
+
+    if [ -n "$script" ]; then
+        echo "  Running: bash $script"
+        echo "  (This may take a few minutes — please wait...)"
+        echo ""
+        if bash "$script"; then
+            print_ok "ArduCam SDK dependencies installed."
+            return 0
+        else
+            print_warn "ArduCam install script finished with warnings/errors."
+            echo "  Retry manually: bash $script"
+            return 1
+        fi
+    else
+        print_warn "No ArduCam install script found in $tof_dir"
+        echo "  Check: https://github.com/ArduCAM/Arducam_tof_camera"
+        return 1
+    fi
+}
+
 # ---- Step 8: ArduCam ToF SDK ----
 echo ""
 echo "[Step 8] Checking ArduCam ToF SDK..."
@@ -194,8 +222,6 @@ TOF_DIR="$HOME/Arducam_tof_camera"
 
 if [ -d "$TOF_DIR" ]; then
     print_ok "ArduCam ToF SDK already exists: $TOF_DIR"
-    echo "  To update the SDK later:"
-    echo "    cd $TOF_DIR && git pull"
 else
     echo "  ArduCam ToF SDK not found at $TOF_DIR"
     echo "  Cloning from GitHub..."
@@ -203,30 +229,8 @@ else
 
     if git clone https://github.com/ArduCAM/Arducam_tof_camera.git "$TOF_DIR"; then
         print_ok "ArduCam ToF SDK cloned to $TOF_DIR"
-
-        # Run the dependency installer if present
-        INSTALL_SCRIPT="$TOF_DIR/Install_dependencies_raspbian.sh"
-        if [ -f "$INSTALL_SCRIPT" ]; then
-            echo ""
-            echo "  Found ArduCam dependency installer. Running..."
-            echo "  (This may take a few minutes.)"
-            echo ""
-            # Run in a subshell so errors don't exit our script
-            if bash "$INSTALL_SCRIPT"; then
-                print_ok "ArduCam ToF dependencies installed."
-            else
-                print_warn "ArduCam install script finished with warnings/errors."
-                echo ""
-                echo "  You can retry the ArduCam install manually:"
-                echo "    bash $INSTALL_SCRIPT"
-                echo ""
-                echo "  This does NOT prevent the rest of BOEBOT from working."
-            fi
-        else
-            print_warn "ArduCam install script not found at: $INSTALL_SCRIPT"
-            echo "  The SDK was cloned but dependencies may not be installed."
-            echo "  Check the SDK docs: https://github.com/ArduCAM/Arducam_tof_camera"
-        fi
+        echo ""
+        run_arducam_install "$TOF_DIR"
     else
         print_warn "Could not clone ArduCam ToF SDK."
         echo ""
@@ -274,16 +278,25 @@ else
     fi
 fi
 
-# ArducamDepthCamera module
+# ArducamDepthCamera module — auto-install if missing
 if python3 -c "import ArducamDepthCamera" 2>/dev/null; then
     print_ok "ArducamDepthCamera SDK is importable. ToF tests are ready."
 else
-    print_warn "ArducamDepthCamera module not importable."
-    if [ -d "$HOME/Arducam_tof_camera" ]; then
-        echo "  SDK folder exists. Re-run the dependency installer:"
-        echo "    bash $HOME/Arducam_tof_camera/Install_dependencies_raspbian.sh"
+    print_warn "ArducamDepthCamera module not importable. Running ArduCam installer..."
+    echo ""
+    if [ -d "$TOF_DIR" ]; then
+        run_arducam_install "$TOF_DIR"
+        echo ""
+        # Verify after install
+        if python3 -c "import ArducamDepthCamera" 2>/dev/null; then
+            print_ok "ArducamDepthCamera now importable. ToF tests are ready."
+        else
+            print_warn "ArducamDepthCamera still not importable after install."
+            echo "  Try rebooting and running this script again: sudo reboot"
+        fi
+    else
+        print_warn "SDK folder missing ($TOF_DIR). Run this script again to clone it."
     fi
-    echo "  Options 11 (ToF preview) and 12 (ToF capture) require this module."
 fi
 
 # ---- Summary ----
