@@ -219,9 +219,21 @@ public class ToFPreviewTest {
             int exitCode = process.waitFor();
             System.out.println();
             System.out.println("  Preview window closed (exit code " + exitCode + ").");
-            logger.logPass("ArduCam ToF Live Preview CAM1");
             System.out.println();
-            System.out.println("[RESULT] PASS - ToF live preview completed.");
+            if (exitCode == 0) {
+                logger.logPass("ArduCam ToF Live Preview CAM1");
+                System.out.println("[RESULT] PASS - ToF live preview completed.");
+            } else {
+                System.out.println("  Preview exited with error. Check [tof] output above.");
+                System.out.println();
+                System.out.println("  POSSIBLE FIXES:");
+                System.out.println("  - Run: bash ~/Arducam_tof_camera/Install_dependencies.sh");
+                System.out.println("  - Run: ./scripts/install_boebot.sh");
+                System.out.println("  - Check CAM1 ribbon cable.");
+                System.out.println("  - Run option 10 (SDK detection) to diagnose.");
+                logger.logFail("ArduCam ToF Live Preview", "Python exited with code " + exitCode);
+                System.out.println("[RESULT] FAIL - Preview exited with error.");
+            }
             return exitCode == 0;
 
         } catch (Exception e) {
