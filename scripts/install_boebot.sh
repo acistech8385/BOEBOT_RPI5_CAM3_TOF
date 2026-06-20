@@ -237,6 +237,55 @@ else
     fi
 fi
 
+# ---- Step 9: ArduCam ToF Python dependencies ----
+echo ""
+echo "[Step 9] Checking ArduCam ToF Python dependencies..."
+
+# numpy
+if python3 -c "import numpy" 2>/dev/null; then
+    print_ok "numpy is available."
+else
+    print_install "numpy (needed for ToF capture and preview)..."
+    pip3 install numpy --quiet 2>/dev/null \
+        || sudo pip3 install numpy --quiet 2>/dev/null \
+        || sudo apt-get install -y python3-numpy -qq 2>/dev/null \
+        || true
+    if python3 -c "import numpy" 2>/dev/null; then
+        print_ok "numpy installed."
+    else
+        print_warn "numpy install may have failed. Try: pip3 install numpy"
+    fi
+fi
+
+# opencv-python (cv2) - needed for PNG image output from ToF
+if python3 -c "import cv2" 2>/dev/null; then
+    print_ok "opencv-python (cv2) is available."
+else
+    print_install "opencv-python (needed for ToF PNG output)..."
+    sudo apt-get install -y python3-opencv -qq 2>/dev/null \
+        || pip3 install opencv-python --quiet 2>/dev/null \
+        || sudo pip3 install opencv-python --quiet 2>/dev/null \
+        || true
+    if python3 -c "import cv2" 2>/dev/null; then
+        print_ok "opencv-python installed."
+    else
+        print_warn "cv2 not available. ToF depth PNG output will be skipped."
+        echo "  Try: sudo apt-get install -y python3-opencv"
+    fi
+fi
+
+# ArducamDepthCamera module
+if python3 -c "import ArducamDepthCamera" 2>/dev/null; then
+    print_ok "ArducamDepthCamera SDK is importable. ToF tests are ready."
+else
+    print_warn "ArducamDepthCamera module not importable."
+    if [ -d "$HOME/Arducam_tof_camera" ]; then
+        echo "  SDK folder exists. Re-run the dependency installer:"
+        echo "    bash $HOME/Arducam_tof_camera/Install_dependencies_raspbian.sh"
+    fi
+    echo "  Options 11 (ToF preview) and 12 (ToF capture) require this module."
+fi
+
 # ---- Summary ----
 echo ""
 echo "======================================================"
@@ -249,6 +298,9 @@ echo "  i2c-tools  : $(command_exists i2cdetect && echo "OK" || echo "NOT FOUND"
 echo "  rpicam-still: $(command_exists rpicam-still && echo "OK" || echo "not found")"
 echo "  libcam-still: $(command_exists libcamera-still && echo "OK" || echo "not found")"
 echo "  Python 3   : $(command_exists python3 && echo "OK - $(python3 --version)" || echo "NOT FOUND")"
+echo "  numpy      : $(python3 -c "import numpy; print('OK - ' + numpy.__version__)" 2>/dev/null || echo "NOT FOUND")"
+echo "  cv2        : $(python3 -c "import cv2; print('OK')" 2>/dev/null || echo "not found")"
+echo "  ArducamSDK : $(python3 -c "import ArducamDepthCamera; print('OK')" 2>/dev/null || echo "NOT IMPORTABLE")"
 echo "  I2C device : $([ -e /dev/i2c-1 ] && echo "OK - /dev/i2c-1 exists" || echo "NOT ACTIVE (reboot needed?)")"
 echo "  ArduCam SDK: $([ -d "$HOME/Arducam_tof_camera" ] && echo "OK - $HOME/Arducam_tof_camera" || echo "NOT INSTALLED")"
 echo ""

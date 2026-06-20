@@ -14,14 +14,13 @@ import java.time.format.DateTimeFormatter;
  *   2. libcamera-still (older Raspberry Pi OS)
  *
  * Saves a timestamped image to:
- *   logs/<hostname>/cam3_still_<timestamp>.jpg
+ *   logs/<hostname>/cam3_YYYYMMDD_HHMMSS.jpg
  *
  * PASS = image file created successfully.
  * FAIL = command not found or image not created.
  */
 public class CameraModule3Test {
 
-    // Try these camera commands in order (Bookworm first, then legacy)
     private static final String[] STILL_COMMANDS = {"rpicam-still", "libcamera-still"};
 
     public static boolean run(AppLogger logger, BotConfig config) {
@@ -35,7 +34,6 @@ public class CameraModule3Test {
         logger.logSeparator();
         logger.log("TEST 8: Camera Module 3 Still Capture - CAM/DISP 0");
 
-        // Find which camera command is available
         String cameraCmd = findCameraCommand(STILL_COMMANDS);
 
         if (cameraCmd == null) {
@@ -51,61 +49,56 @@ public class CameraModule3Test {
 
         System.out.println("  Using : " + cameraCmd);
 
-        // Build a timestamped output filename
         String timestamp = LocalDateTime.now()
-            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-        String hostname = logger.getHostname();
-        String logDir   = "logs" + File.separator + hostname;
-        String imageFile = logDir + File.separator + "cam3_still_" + timestamp + ".jpg";
+            .format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+        String hostname  = logger.getHostname();
+        String fileName  = "cam3_" + timestamp + ".jpg";
+        File   logDir    = new File("logs" + File.separator + hostname).getAbsoluteFile();
+        File   imageFile = new File(logDir, fileName);
 
-        new File(logDir).mkdirs();
+        logDir.mkdirs();
 
-        System.out.println("  Output: " + imageFile);
         logger.log("  Command  : " + cameraCmd);
-        logger.log("  Output   : " + imageFile);
+        logger.log("  Output   : " + imageFile.getAbsolutePath());
 
         System.out.println();
         System.out.println("[Step 1] Running: " + cameraCmd
             + " --camera " + config.getCameraModule3Port()
-            + " -o " + imageFile + " --timeout 2000");
+            + " -o " + imageFile.getPath() + " --timeout 2000");
         System.out.println("  Please wait (approx 3 seconds)...");
 
         try {
             ProcessBuilder pb = new ProcessBuilder(
                 cameraCmd,
                 "--camera", String.valueOf(config.getCameraModule3Port()),
-                "-o", imageFile,
+                "-o", imageFile.getAbsolutePath(),
                 "--timeout", "2000"
             );
             pb.redirectErrorStream(true);
-
             Process process = pb.start();
 
-            // Read and display any camera output/errors
             StringBuilder output = new StringBuilder();
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     output.append(line).append("\n");
-                    if (!line.isBlank()) {
-                        System.out.println("  [camera] " + line);
-                    }
+                    if (!line.isBlank()) System.out.println("  [camera] " + line);
                 }
             }
 
             int exitCode = process.waitFor();
             logger.log("  Exit code: " + exitCode);
 
-            // Check if image file was created
-            File outputFile = new File(imageFile);
-            if (outputFile.exists() && outputFile.length() > 0) {
-                long sizeKB = outputFile.length() / 1024;
+            if (imageFile.exists() && imageFile.length() > 0) {
+                long sizeKB = imageFile.length() / 1024;
                 System.out.println();
-                System.out.println("[Step 2] Image saved successfully.");
-                System.out.println("  Path : " + imageFile);
-                System.out.println("  Size : " + sizeKB + " KB");
-                logger.log("  Image saved: " + imageFile + " (" + sizeKB + " KB)");
+                System.out.println("IMAGE SAVED:");
+                System.out.println("Folder:    " + logDir.getAbsolutePath());
+                System.out.println("File:      " + fileName);
+                System.out.println("Full path: " + imageFile.getAbsolutePath());
+                System.out.println("Size:      " + sizeKB + " KB");
+                logger.log("  Image saved: " + imageFile.getAbsolutePath() + " (" + sizeKB + " KB)");
                 logger.logPass("Camera Module 3 Still Capture CAM0");
                 System.out.println();
                 System.out.println("[RESULT] PASS - Camera Module 3 captured image.");
@@ -150,14 +143,9 @@ public class CameraModule3Test {
                 ProcessBuilder pb = new ProcessBuilder("which", cmd);
                 pb.redirectErrorStream(true);
                 Process p = pb.start();
-                // Drain output so the process doesn't hang
                 p.getInputStream().transferTo(java.io.OutputStream.nullOutputStream());
-                if (p.waitFor() == 0) {
-                    return cmd;
-                }
-            } catch (Exception ignore) {
-                // 'which' not available or other error - try next
-            }
+                if (p.waitFor() == 0) return cmd;
+            } catch (Exception ignore) {}
         }
         return null;
     }

@@ -20,15 +20,16 @@ import java.util.Scanner;
  *   7  - Test MG90S gripper CH0
  *   8  - Camera Module 3 still capture CAM0
  *   9  - Camera Module 3 live preview CAM0
- *   10 - ArduCam ToF CAM1 check
- *   11 - Full safe hardware test
+ *   10 - ArduCam ToF SDK detection CAM1
+ *   11 - ArduCam ToF live preview CAM1
+ *   12 - ArduCam ToF capture/save CAM1
+ *   13 - Full safe hardware test
  *   0  - Exit
  */
 public class Main {
 
     public static void main(String[] args) {
 
-        // ---- Print startup banner ----
         System.out.println();
         System.out.println("====================================");
         System.out.println(" BOEBOT RPi5 Hardware Test App");
@@ -39,17 +40,10 @@ public class Main {
         System.out.println("====================================");
         System.out.println();
 
-        // ---- Load configuration ----
         BotConfig config = new BotConfig();
-
-        // ---- Set up logger ----
         AppLogger logger = new AppLogger();
         logger.logSystemInfo();
 
-        // ---- Initialize Pi4J for I2C access ----
-        // Pi4J communicates with the PCA9685 Servo HAT via I2C.
-        // This will work on Raspberry Pi with I2C enabled.
-        // On other systems it may show a warning - that is expected.
         Context pi4j = null;
         try {
             System.out.println("[Pi4J] Initializing Pi4J...");
@@ -64,49 +58,37 @@ public class Main {
         }
         System.out.println();
 
-        // ---- Main menu loop ----
         Scanner scanner = new Scanner(System.in);
         boolean running = true;
 
         while (running) {
             printMenu();
             System.out.print("Enter choice: ");
-
             String input = scanner.nextLine().trim();
 
             switch (input) {
-                case "1" -> SystemInfoTest.run(logger);
-
-                case "2" -> I2CDetectTest.run(logger, config);
-
-                case "3" -> PCA9685InitTest.run(logger, config, pi4j);
-
-                case "4" -> RightWheelTest.run(logger, config, pi4j, scanner);
-
-                case "5" -> LeftWheelTest.run(logger, config, pi4j, scanner);
-
-                case "6" -> BothWheelsTest.run(logger, config, pi4j, scanner);
-
-                case "7" -> GripperTest.run(logger, config, pi4j);
-
-                case "8" -> CameraModule3Test.run(logger, config);
-
-                case "9" -> CameraModule3PreviewTest.run(logger, config, scanner);
-
-                case "10" -> ToFCameraTest.run(logger, config, scanner);
-
-                case "11" -> FullHardwareTest.run(logger, config, pi4j, scanner);
-
-                case "0" -> {
+                case "1"  -> SystemInfoTest.run(logger);
+                case "2"  -> I2CDetectTest.run(logger, config);
+                case "3"  -> PCA9685InitTest.run(logger, config, pi4j);
+                case "4"  -> RightWheelTest.run(logger, config, pi4j, scanner);
+                case "5"  -> LeftWheelTest.run(logger, config, pi4j, scanner);
+                case "6"  -> BothWheelsTest.run(logger, config, pi4j, scanner);
+                case "7"  -> GripperTest.run(logger, config, pi4j);
+                case "8"  -> CameraModule3Test.run(logger, config);
+                case "9"  -> CameraModule3PreviewTest.run(logger, config);
+                case "10" -> ToFCameraTest.run(logger, config);
+                case "11" -> ToFPreviewTest.run(logger, config);
+                case "12" -> ToFCaptureTest.run(logger, config);
+                case "13" -> FullHardwareTest.run(logger, config, pi4j, scanner);
+                case "0"  -> {
                     System.out.println();
                     System.out.println("Exiting BOEBOT Hardware Test App.");
                     System.out.println("Log file saved: " + logger.getLogFilePath());
                     running = false;
                 }
-
                 default -> {
                     System.out.println("Invalid choice: \"" + input + "\"");
-                    System.out.println("Please enter a number from the menu.");
+                    System.out.println("Please enter a number from the menu (0-13).");
                 }
             }
 
@@ -117,26 +99,20 @@ public class Main {
             }
         }
 
-        // ---- Clean up ----
         logger.close();
 
         if (pi4j != null) {
-            try {
-                pi4j.shutdown();
-            } catch (Exception e) {
-                // Not critical
-            }
+            try { pi4j.shutdown(); } catch (Exception e) {}
         }
 
         scanner.close();
         System.out.println("Goodbye.");
     }
 
-    /** Prints the main menu to the console. */
     private static void printMenu() {
         System.out.println();
         System.out.println("====================================");
-        System.out.println(" BOEBOT RPi5 Hardware Test App");
+        System.out.println(" BOEBOT RPi5 Hardware Test App v1.8");
         System.out.println("====================================");
         System.out.println("1  - System info");
         System.out.println("2  - Check I2C Servo HAT");
@@ -147,8 +123,10 @@ public class Main {
         System.out.println("7  - Test MG90S gripper CH0");
         System.out.println("8  - Camera Module 3 still capture CAM0");
         System.out.println("9  - Camera Module 3 live preview CAM0");
-        System.out.println("10 - ArduCam ToF CAM1 check");
-        System.out.println("11 - Full safe hardware test");
+        System.out.println("10 - ArduCam ToF SDK detection CAM1");
+        System.out.println("11 - ArduCam ToF live preview CAM1");
+        System.out.println("12 - ArduCam ToF capture/save CAM1");
+        System.out.println("13 - Full safe hardware test");
         System.out.println("0  - Exit");
         System.out.println("====================================");
     }

@@ -27,7 +27,7 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 
 ```
 ====================================
- BOEBOT RPi5 Hardware Test App
+ BOEBOT RPi5 Hardware Test App v1.8
 ====================================
 1  - System info
 2  - Check I2C Servo HAT
@@ -38,8 +38,10 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 7  - Test MG90S gripper CH0
 8  - Camera Module 3 still capture CAM0
 9  - Camera Module 3 live preview CAM0
-10 - ArduCam ToF CAM1 check
-11 - Full safe hardware test
+10 - ArduCam ToF SDK detection CAM1
+11 - ArduCam ToF live preview CAM1
+12 - ArduCam ToF capture/save CAM1
+13 - Full safe hardware test
 0  - Exit
 ====================================
 ```
@@ -71,7 +73,7 @@ chmod +x scripts/install_boebot.sh scripts/run_boebot_test.sh
 ### Step 3 — Run the install script
 
 The install script is **idempotent** — safe to run more than once.  
-It installs: Java 17, Maven, i2c-tools, rpicam-apps, Python3, ArduCam ToF SDK.
+It installs: Java 17, Maven, i2c-tools, rpicam-apps, Python3, numpy, opencv-python, ArduCam ToF SDK.
 
 ```bash
 ./scripts/install_boebot.sh
@@ -110,7 +112,6 @@ sudo i2cdetect -y 1
 If you do **not** see `40`:
 - Check the PCA9685 Servo HAT is firmly seated on the GPIO pins.
 - Check power: the HAT may need 5V via its dedicated power connector.
-- Check I2C address jumpers (A0–A5 solder pads on HAT) — all open = 0x40.
 - Check that `/dev/i2c-1` exists: `ls /dev/i2c*`
 
 ### Step 6 — Run the hardware test app
@@ -145,7 +146,7 @@ If there are new install requirements, run the install script again — it is sa
 
 > **ALWAYS lift the BOEBOT wheels off the ground before running any wheel servo test.**
 
-Before any wheel test (options 4, 5, 6, and the wheel section of option 11),  
+Before any wheel test (options 4, 5, 6, and the wheel section of option 13),  
 the app will ask you to type **exactly**:
 
 ```
@@ -158,28 +159,86 @@ Wheel movement duration is limited to **1 second maximum** per direction.
 
 ---
 
-## Camera Tests
+## Camera Tests (CAM0 — Camera Module 3)
 
 ### Option 8 — Still Capture
 
 Captures a single image using `rpicam-still` (Bookworm) or `libcamera-still` (Bullseye).  
-Works in SSH sessions (no display needed).  
-Image is saved to `logs/<hostname>/cam3_still_<timestamp>.jpg`.
+Works in SSH sessions — **no display needed**.  
+Image is saved to `logs/<hostname>/cam3_YYYYMMDD_HHMMSS.jpg`.
+
+On success:
+```
+IMAGE SAVED:
+Folder:    /home/faix/.../logs/boebot-1
+File:      cam3_20260620_203300.jpg
+Full path: /home/faix/.../logs/boebot-1/cam3_20260620_203300.jpg
+```
 
 ### Option 9 — Live Preview
 
 Opens a live camera preview window on the screen.  
-**Requires a display** (HDMI/DSI screen, VNC, or X11 forwarding).  
-Press **Enter** in the terminal to stop the preview.
+**Requires a display** — HDMI/DSI screen, VNC, or X11 forwarding (`ssh -X`).  
+**Remote Desktop (RDP) does NOT export DISPLAY** — use VNC or a physical screen.  
+Close the camera window to return to the menu (or press Ctrl+C).
 
-If no display is detected (headless SSH), the app will explain this and suggest option 8 instead.
+If no display is detected, the app prints:
+```
+LIVE PREVIEW NOT AVAILABLE: no display detected. Use still capture test instead.
+```
 
-### Option 10 — ArduCam ToF CAM1 Check
+---
+
+## ToF Camera Tests (CAM1 — ArduCam ToF)
+
+### Option 10 — SDK Detection
 
 Checks if the ArduCam ToF SDK is installed at `~/Arducam_tof_camera`.  
-Lists available Python example files.  
-In interactive mode, offers to run a preview example (requires display).  
-Press **Enter** to stop the preview, or **Ctrl+C** if Enter does not respond.
+Checks Python 3, lists example files, and verifies `ArducamDepthCamera` is importable.  
+**No camera is opened.** PASS = SDK ready, FAIL = missing components with fix instructions.
+
+### Option 11 — Live Preview
+
+Opens a live depth + amplitude preview window using Python + OpenCV.  
+**Requires a display** — HDMI/DSI screen, VNC, or X11 forwarding.  
+**Remote Desktop (RDP) does NOT export DISPLAY** — use VNC or a physical screen.
+
+Displays:
+- **Left panel**: depth map (JET colourmap, 0–4 m range)
+- **Right panel**: amplitude / confidence map (greyscale)
+
+Close the window or press **Q / ESC** to stop. Or press Ctrl+C to force-stop.
+
+If no display is detected:
+```
+LIVE PREVIEW NOT AVAILABLE: no display detected. Use still capture test instead.
+```
+
+### Option 12 — Capture / Save
+
+Captures a single ToF frame and saves output files.  
+**No display needed** — works in headless SSH sessions.
+
+Files saved to `logs/<hostname>/`:
+
+| File | Contents |
+|------|----------|
+| `tof_depth_YYYYMMDD_HHMMSS.csv` | Raw depth values in mm (always saved) |
+| `tof_depth_YYYYMMDD_HHMMSS.png` | Depth as JET colourmap (requires cv2) |
+| `tof_amplitude_YYYYMMDD_HHMMSS.png` | Amplitude greyscale (requires cv2) |
+
+On success:
+```
+TOF OUTPUT SAVED:
+Folder: /home/faix/.../logs/boebot-1
+Files:
+  - tof_depth_20260620_203300.csv
+  - tof_depth_20260620_203300.png
+  - tof_amplitude_20260620_203300.png
+Full paths:
+  - /home/faix/.../tof_depth_20260620_203300.csv
+  - ...
+```
 
 ---
 
@@ -193,7 +252,7 @@ logs/<hostname>/boebot_<timestamp>.log
 
 Each test prints **PASS** or **FAIL** in both the console and the log file.  
 System info, OS version, Java version, and hostname are logged at startup.  
-Still images are saved to the same `logs/<hostname>/` folder.
+Still images and ToF output files are saved to the same `logs/<hostname>/` folder.
 
 ---
 
@@ -205,11 +264,12 @@ Still images are saved to the same `logs/<hostname>/` folder.
 | `/dev/i2c-1` missing after enabling I2C | Reboot: `sudo reboot` |
 | PCA9685 not found at 0x40 | Check HAT is seated on GPIO pins, check HAT power connector |
 | `rpicam-still` not found | `sudo apt-get install -y rpicam-apps` |
-| `libcamera-still` not found | `sudo apt-get install -y libcamera-apps` |
 | Camera: no image created | Check ribbon cable in CAM0, check: `rpicam-still --list-cameras` |
-| Preview: no window appears | Need a display or VNC session; headless SSH does not have a display |
+| Preview: no window appears | Need a display or VNC session; RDP does not export DISPLAY |
 | ArduCam ToF not found | Run `./scripts/install_boebot.sh` to auto-clone the SDK |
-| ArduCam SDK fails to install | Try manually: `bash ~/Arducam_tof_camera/Install_dependencies_raspbian.sh` |
+| `ArducamDepthCamera` not importable | Run: `bash ~/Arducam_tof_camera/Install_dependencies_raspbian.sh` |
+| ToF capture: no PNG output | Install cv2: `sudo apt-get install -y python3-opencv` |
+| numpy not found | `pip3 install numpy` |
 | I2C permission error | `sudo usermod -aG i2c $USER` then log out and back in |
 | Java not found | `sudo apt-get install -y openjdk-17-jdk` |
 | Maven not found | `sudo apt-get install -y maven` |
@@ -243,8 +303,10 @@ BOEBOT_RPI5_CAM3_TOF/
     ├── GripperTest.java                Option 7:  MG90S gripper servo CH0
     ├── CameraModule3Test.java          Option 8:  Camera Module 3 still capture
     ├── CameraModule3PreviewTest.java   Option 9:  Camera Module 3 live preview
-    ├── ToFCameraTest.java              Option 10: ArduCam ToF CAM1 check
-    └── FullHardwareTest.java           Option 11: Full safe hardware test
+    ├── ToFCameraTest.java              Option 10: ArduCam ToF SDK detection
+    ├── ToFPreviewTest.java             Option 11: ArduCam ToF live preview
+    ├── ToFCaptureTest.java             Option 12: ArduCam ToF capture/save
+    └── FullHardwareTest.java           Option 13: Full safe hardware test
 ```
 
 ---
