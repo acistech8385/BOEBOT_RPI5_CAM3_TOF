@@ -225,7 +225,7 @@ Files saved to `logs/<hostname>/`:
 |------|----------|
 | `tof_depth_YYYYMMDD_HHMMSS.csv` | Raw depth values in mm (always saved) |
 | `tof_depth_YYYYMMDD_HHMMSS.png` | Depth as JET colourmap (requires cv2) |
-| `tof_amplitude_YYYYMMDD_HHMMSS.png` | Amplitude greyscale (requires cv2) |
+| `tof_confidence_YYYYMMDD_HHMMSS.png` | Confidence greyscale (requires cv2) |
 
 On success:
 ```
@@ -234,7 +234,7 @@ Folder: /home/faix/.../logs/boebot-1
 Files:
   - tof_depth_20260620_203300.csv
   - tof_depth_20260620_203300.png
-  - tof_amplitude_20260620_203300.png
+  - tof_confidence_20260620_203300.png
 Full paths:
   - /home/faix/.../tof_depth_20260620_203300.csv
   - ...
@@ -267,7 +267,7 @@ Still images and ToF output files are saved to the same `logs/<hostname>/` folde
 | Camera: no image created | Check ribbon cable in CAM0, check: `rpicam-still --list-cameras` |
 | Preview: no window appears | Need a display or VNC session; RDP does not export DISPLAY |
 | ArduCam ToF not found | Run `./scripts/install_boebot.sh` to auto-clone the SDK |
-| `ArducamDepthCamera` not importable | Run: `bash ~/Arducam_tof_camera/Install_dependencies_raspbian.sh` |
+| `ArducamDepthCamera` not importable | Run: `bash ~/Arducam_tof_camera/Install_dependencies.sh` |
 | ToF capture: no PNG output | Install cv2: `sudo apt-get install -y python3-opencv` |
 | numpy not found | `pip3 install numpy` |
 | I2C permission error | `sudo usermod -aG i2c $USER` then log out and back in |
