@@ -58,7 +58,7 @@ Do **not** run these on Windows.
 ```bash
 mkdir -p ~/BOEBOT_RPI5_CAM3_TOF
 cd ~/BOEBOT_RPI5_CAM3_TOF
-git clone https://github.com/acistech8385/BOEBOT_RPI5_CAM3_TOF.git
+git clone -b master https://github.com/acistech8385/BOEBOT_RPI5_CAM3_TOF.git
 cd BOEBOT_RPI5_CAM3_TOF
 ```
 
