@@ -56,7 +56,7 @@ public class ToFPreviewTest {
             log("Opening ArduCam ToF camera (CSI, port 0)...")
             cam = ac.ArducamCamera()
 
-            ret = cam.open(ac.Connection.CSI, 0)
+            ret = cam.open(ac.Connection.CSI, 1)
             if ret != 0:
                 fail("Camera open failed. Error code: " + str(ret))
 
