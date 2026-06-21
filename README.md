@@ -27,7 +27,7 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 
 ```
 ====================================
- BOEBOT RPi5 Hardware Test App v1.8
+ BOEBOT RPi5 Hardware Test App v1.9
 ====================================
 1  - System info
 2  - Check I2C Servo HAT
@@ -42,6 +42,7 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 11 - ArduCam ToF live preview CAM1
 12 - ArduCam ToF capture/save CAM1
 13 - Full safe hardware test
+14 - Dual camera live view CAM0+CAM1
 0  - Exit
 ====================================
 ```
@@ -242,6 +243,37 @@ Full paths:
 
 ---
 
+## Dual Camera View (CAM0 + CAM1 together)
+
+### Option 14 — Dual Live View
+
+Shows **both cameras at once** in a single window, side by side:
+
+- **Left panel**: Camera Module 3 RGB feed (CAM0, via picamera2)
+- **Right panel**: ArduCam ToF depth map (CAM1, JET colourmap, via the SDK)
+
+This proves both cameras run simultaneously without conflict.
+
+**Requires a display** — HDMI/DSI screen, VNC, or X11 forwarding (`ssh -X`).
+**Remote Desktop (RDP) does NOT export DISPLAY** — use VNC or a physical screen.
+For headless checks use option 8 (CM3 capture) + option 12 (ToF capture) instead.
+
+Close the window or press **Q / ESC** to stop. Or press Ctrl+C to force-stop.
+
+> **Note on the ToF depth panel:** the ToF only shows colour where it gets a
+> valid return within ~0.2–4 m. Pointed at empty space, a far wall (>4 m), or
+> glass, the depth panel reads mostly black — this is normal, not a fault.
+> Point it at a person or object 0.5–1.5 m away to see the depth gradient
+> (blue = near, red = far).
+
+Needs `python3-picamera2` in addition to `numpy` and `python3-opencv`:
+
+```bash
+sudo apt-get install -y python3-picamera2 python3-opencv
+```
+
+---
+
 ## Log Files
 
 Logs are saved automatically to:
@@ -306,7 +338,8 @@ BOEBOT_RPI5_CAM3_TOF/
     ├── ToFCameraTest.java              Option 10: ArduCam ToF SDK detection
     ├── ToFPreviewTest.java             Option 11: ArduCam ToF live preview
     ├── ToFCaptureTest.java             Option 12: ArduCam ToF capture/save
-    └── FullHardwareTest.java           Option 13: Full safe hardware test
+    ├── FullHardwareTest.java           Option 13: Full safe hardware test
+    └── DualCameraViewTest.java         Option 14: Dual camera live view CAM0+CAM1
 ```
 
 ---

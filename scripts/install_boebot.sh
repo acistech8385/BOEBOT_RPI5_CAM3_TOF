@@ -297,6 +297,20 @@ else
     fi
 fi
 
+# picamera2 - needed for the RGB feed in the dual camera view (option 14)
+if python3 -c "import picamera2" 2>/dev/null; then
+    print_ok "picamera2 is available. Dual camera view is ready."
+else
+    print_install "python3-picamera2 (needed for option 14 dual camera view)..."
+    sudo apt-get install -y python3-picamera2 -qq 2>/dev/null || true
+    if python3 -c "import picamera2" 2>/dev/null; then
+        print_ok "python3-picamera2 installed."
+    else
+        print_warn "picamera2 not available. Option 14 dual camera view will not work."
+        echo "  Try: sudo apt-get install -y python3-picamera2"
+    fi
+fi
+
 # ArducamDepthCamera module — auto-install if missing
 if python3 -c "import ArducamDepthCamera" 2>/dev/null; then
     print_ok "ArducamDepthCamera SDK is importable. ToF tests are ready."
