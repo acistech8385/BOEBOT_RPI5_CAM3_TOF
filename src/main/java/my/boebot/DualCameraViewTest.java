@@ -107,8 +107,9 @@ public class DualCameraViewTest {
 
             while True:
                 # -- RGB frame from Camera Module 3 --
+                # picamera2 "RGB888" already returns BGR byte order, which is
+                # what OpenCV imshow expects -- do NOT cvtColor or skin goes blue.
                 rgb = picam2.capture_array()
-                rgb = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
                 if rgb.shape[1] != VIEW_W or rgb.shape[0] != VIEW_H:
                     rgb = cv2.resize(rgb, (VIEW_W, VIEW_H))
 
