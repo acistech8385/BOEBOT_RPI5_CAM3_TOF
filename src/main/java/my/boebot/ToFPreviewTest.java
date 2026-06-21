@@ -26,7 +26,7 @@ public class ToFPreviewTest {
     private static final String TOF_PREVIEW_SCRIPT = """
             #!/usr/bin/env python3
             # BOEBOT ArduCam ToF Live Preview
-            # API: cam.open(ac.Connection.CSI, 0) — index 0 = first/only ToF camera
+            # API: cam.open(ac.Connection.CSI, N) — N = /dev/videoN node, ToF=video8 on CAM1
             import sys
             import time
 
@@ -53,12 +53,26 @@ public class ToFPreviewTest {
             except ImportError:
                 fail("cv2 not found | Run: sudo apt-get install -y python3-opencv")
 
-            log("Opening ArduCam ToF camera (CSI, index 0)...")
+            # NOTE: open() index = /dev/videoN number, NOT the CSI port.
+            # Camera Module 3 (imx708) on CAM0 takes /dev/video0-7.
+            # ArduCam ToF on CAM1 takes /dev/video8-15, so index 8 in a
+            # dual-camera setup. If the ToF is the only camera it is video0.
+            # Probe candidates and use the first that opens successfully.
+            log("Opening ArduCam ToF camera (probing /dev/video nodes)...")
             cam = ac.ArducamCamera()
 
-            ret = cam.open(ac.Connection.CSI, 0)
-            if ret != 0:
-                fail("Camera open failed. Error code: " + str(ret))
+            candidates = [8, 0, 9, 10, 11, 12]
+            ret = None
+            opened_index = None
+            for idx in candidates:
+                ret = cam.open(ac.Connection.CSI, idx)
+                if ret == 0:
+                    opened_index = idx
+                    log("ToF camera opened on /dev/video" + str(idx))
+                    break
+            if opened_index is None:
+                fail("Camera open failed on indices " + str(candidates) +
+                     ". Last error: " + str(ret))
 
             ret = cam.start(ac.FrameType.DEPTH)
             if ret != 0:
