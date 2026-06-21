@@ -137,13 +137,13 @@ public class BothWheelsTest {
     }
 
     private static void move(PCA9685 pca, int rightPulse, int leftPulse, int ms)
-            throws InterruptedException {
+            throws Exception {
         pca.setServoPulse(RIGHT_CH, rightPulse);
         pca.setServoPulse(LEFT_CH, leftPulse);
         Thread.sleep(ms);
     }
 
-    private static void stopBoth(PCA9685 pca) {
+    private static void stopBoth(PCA9685 pca) throws Exception {
         pca.setServoPulse(RIGHT_CH, STOP);
         pca.setServoPulse(LEFT_CH, STOP);
     }
