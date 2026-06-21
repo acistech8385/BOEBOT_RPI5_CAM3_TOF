@@ -26,7 +26,7 @@ public class ToFPreviewTest {
     private static final String TOF_PREVIEW_SCRIPT = """
             #!/usr/bin/env python3
             # BOEBOT ArduCam ToF Live Preview
-            # API: cam.open(ac.Connection.CSI, 0), frame.depth_data, frame.confidence_data
+            # API: cam.open(ac.Connection.CSI, 0) — index 0 = first/only ToF camera
             import sys
             import time
 
@@ -53,10 +53,10 @@ public class ToFPreviewTest {
             except ImportError:
                 fail("cv2 not found | Run: sudo apt-get install -y python3-opencv")
 
-            log("Opening ArduCam ToF camera (CSI, port 0)...")
+            log("Opening ArduCam ToF camera (CSI, index 0)...")
             cam = ac.ArducamCamera()
 
-            ret = cam.open(ac.Connection.CSI, 1)
+            ret = cam.open(ac.Connection.CSI, 0)
             if ret != 0:
                 fail("Camera open failed. Error code: " + str(ret))
 
