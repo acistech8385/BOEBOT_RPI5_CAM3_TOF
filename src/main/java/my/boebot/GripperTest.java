@@ -4,7 +4,7 @@ import com.pi4j.context.Context;
 import java.util.Scanner;
 
 /**
- * GripperTest - Menu Option 7: interactive MG90S gripper servo on Servo HAT channel 0.
+ * GripperTest - Menu Option 9: interactive MG90S gripper servo on Servo HAT channel 0.
  *
  * The MG90S is a POSITION servo. Key controls (no Enter needed):
  *   8   = close gripper
@@ -30,7 +30,7 @@ public class GripperTest {
                                Context pi4j, Scanner scanner) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 7: MG90S Gripper CH0 (interactive)");
+        System.out.println("  Test 9: MG90S Gripper CH0 (interactive)");
         System.out.println("====================================");
         System.out.println("  Servo HAT channel : " + GRIPPER_CH);
         System.out.println("  Servo type        : MG90S position servo");
@@ -39,7 +39,7 @@ public class GripperTest {
         System.out.println("  WARNING: do NOT force the gripper past its end stops.");
 
         logger.logSeparator();
-        logger.log("TEST 7: MG90S Gripper (interactive) - Servo HAT channel " + GRIPPER_CH);
+        logger.log("TEST 9: MG90S Gripper (interactive) - Servo HAT channel " + GRIPPER_CH);
 
         if (pi4j == null) {
             System.out.println("[RESULT] FAIL - Pi4J context not available.");

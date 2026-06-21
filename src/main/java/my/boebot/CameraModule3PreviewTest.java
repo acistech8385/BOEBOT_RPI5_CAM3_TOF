@@ -26,13 +26,13 @@ public class CameraModule3PreviewTest {
     public static boolean run(AppLogger logger, BotConfig config) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 9: Camera Module 3 Live Preview CAM0");
+        System.out.println("  Test 11: Camera Module 3 Live Preview CAM0");
         System.out.println("====================================");
         System.out.println("  Camera port : CAM/DISP 0");
         System.out.println("  Type        : Live preview window");
 
         logger.logSeparator();
-        logger.log("TEST 9: Camera Module 3 Live Preview - CAM/DISP 0");
+        logger.log("TEST 11: Camera Module 3 Live Preview - CAM/DISP 0");
 
         // ---- Check for a display ----
         String displayEnv  = System.getenv("DISPLAY");

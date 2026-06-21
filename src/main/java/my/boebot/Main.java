@@ -14,18 +14,19 @@ import java.util.Scanner;
  *   1  - System info
  *   2  - Check I2C Servo HAT
  *   3  - Test PCA9685 Servo HAT
- *   4  - Test right wheel servo CH14
- *   5  - Test left wheel servo CH15
- *   6  - Test both wheel servos
- *   7  - Test MG90S gripper CH0
- *   8  - Camera Module 3 still capture CAM0
- *   9  - Camera Module 3 live preview CAM0
- *   10 - ArduCam ToF SDK detection CAM1
- *   11 - ArduCam ToF live preview CAM1
- *   12 - ArduCam ToF capture/save CAM1
- *   13 - Full safe hardware test
- *   14 - Dual camera live view (CAM0 RGB + CAM1 ToF)
- *   15 - Calibrate wheel neutral (hold 1500 us)
+ *   4  - Calibrate wheel neutral (hold 1500 us)
+ *   5  - Right wheel CH14 (incremental)
+ *   6  - Both wheels auto sequence
+ *   7  - Drive control (8/2/4/6, 5 stop)
+ *   8  - Left wheel CH15 (incremental)
+ *   9  - MG90S gripper CH0
+ *   10 - Camera Module 3 still capture CAM0
+ *   11 - Camera Module 3 live preview CAM0
+ *   12 - ArduCam ToF SDK detection CAM1
+ *   13 - Dual camera live view (CAM0 RGB + CAM1 ToF)
+ *   14 - ArduCam ToF live preview CAM1
+ *   15 - ArduCam ToF capture/save CAM1
+ *   16 - Full test: drive + dual live camera
  *   0  - Exit
  */
 public class Main {
@@ -72,18 +73,19 @@ public class Main {
                 case "1"  -> SystemInfoTest.run(logger);
                 case "2"  -> I2CDetectTest.run(logger, config);
                 case "3"  -> PCA9685InitTest.run(logger, config, pi4j);
-                case "4"  -> RightWheelTest.run(logger, config, pi4j, scanner);
-                case "5"  -> LeftWheelTest.run(logger, config, pi4j, scanner);
+                case "4"  -> CalibrateNeutralTest.run(logger, config, pi4j, scanner);
+                case "5"  -> RightWheelTest.run(logger, config, pi4j, scanner);
                 case "6"  -> BothWheelsTest.run(logger, config, pi4j, scanner);
-                case "7"  -> GripperTest.run(logger, config, pi4j, scanner);
-                case "8"  -> CameraModule3Test.run(logger, config);
-                case "9"  -> CameraModule3PreviewTest.run(logger, config);
-                case "10" -> ToFCameraTest.run(logger, config);
-                case "11" -> ToFPreviewTest.run(logger, config);
-                case "12" -> ToFCaptureTest.run(logger, config);
-                case "13" -> FullHardwareTest.run(logger, config, pi4j, scanner);
-                case "14" -> DualCameraViewTest.run(logger, config);
-                case "15" -> CalibrateNeutralTest.run(logger, config, pi4j, scanner);
+                case "7"  -> DriveControlTest.run(logger, config, pi4j, scanner);
+                case "8"  -> LeftWheelTest.run(logger, config, pi4j, scanner);
+                case "9"  -> GripperTest.run(logger, config, pi4j, scanner);
+                case "10" -> CameraModule3Test.run(logger, config);
+                case "11" -> CameraModule3PreviewTest.run(logger, config);
+                case "12" -> ToFCameraTest.run(logger, config);
+                case "13" -> DualCameraViewTest.run(logger, config);
+                case "14" -> ToFPreviewTest.run(logger, config);
+                case "15" -> ToFCaptureTest.run(logger, config);
+                case "16" -> FullDriveCameraTest.run(logger, config, pi4j, scanner);
                 case "0"  -> {
                     System.out.println();
                     System.out.println("Exiting BOEBOT Hardware Test App.");
@@ -92,7 +94,7 @@ public class Main {
                 }
                 default -> {
                     System.out.println("Invalid choice: \"" + input + "\"");
-                    System.out.println("Please enter a number from the menu (0-15).");
+                    System.out.println("Please enter a number from the menu (0-16).");
                 }
             }
 
@@ -116,23 +118,24 @@ public class Main {
     private static void printMenu() {
         System.out.println();
         System.out.println("====================================");
-        System.out.println(" BOEBOT RPi5 Hardware Test App v2.1");
+        System.out.println(" BOEBOT RPi5 Hardware Test App v2.2");
         System.out.println("====================================");
         System.out.println("1  - System info");
         System.out.println("2  - Check I2C Servo HAT");
         System.out.println("3  - Test PCA9685 Servo HAT");
-        System.out.println("4  - Right wheel CH14  (8=fwd 2=back 5=stop ESC)");
-        System.out.println("5  - Left wheel CH15   (8=fwd 2=back 5=stop ESC)");
+        System.out.println("4  - Calibrate wheel neutral (1500us)");
+        System.out.println("5  - Right wheel CH14  (8=fwd+ 2=rev+ 5=stop ESC)");
         System.out.println("6  - Both wheels auto sequence");
-        System.out.println("7  - Gripper CH0       (8=close 2=open 5=stop ESC)");
-        System.out.println("8  - Camera Module 3 still capture CAM0");
-        System.out.println("9  - Camera Module 3 live preview CAM0");
-        System.out.println("10 - ArduCam ToF SDK detection CAM1");
-        System.out.println("11 - ArduCam ToF live preview CAM1");
-        System.out.println("12 - ArduCam ToF capture/save CAM1");
-        System.out.println("13 - Full safe hardware test");
-        System.out.println("14 - Dual camera live view CAM0+CAM1");
-        System.out.println("15 - Calibrate wheel neutral (1500us)");
+        System.out.println("7  - Drive control    (8 fwd 2 back 4 left 6 right 5 stop)");
+        System.out.println("8  - Left wheel CH15   (8=fwd+ 2=rev+ 5=stop ESC)");
+        System.out.println("9  - Gripper CH0       (8=close 2=open 5=stop ESC)");
+        System.out.println("10 - Camera Module 3 still capture CAM0");
+        System.out.println("11 - Camera Module 3 live preview CAM0");
+        System.out.println("12 - ArduCam ToF SDK detection CAM1");
+        System.out.println("13 - Dual camera live view CAM0+CAM1");
+        System.out.println("14 - ArduCam ToF live preview CAM1");
+        System.out.println("15 - ArduCam ToF capture/save CAM1");
+        System.out.println("16 - Full test: drive + dual live camera");
         System.out.println("0  - Exit");
         System.out.println("====================================");
     }

@@ -148,10 +148,41 @@ public class DualCameraViewTest {
             log("Dual view closed after " + str(frames) + " frames.")
             """;
 
+    /**
+     * Write the dual-view script to a temp file and start it as a background
+     * python3 process (no wait). Returns the Process, or null on failure.
+     * Used by the full test (option 16) to show both cameras while driving.
+     */
+    public static Process launchBackground() {
+        try {
+            Path tmpScript = Files.createTempFile("boebot_dual_view_", ".py");
+            Files.writeString(tmpScript, DUAL_VIEW_SCRIPT);
+            tmpScript.toFile().deleteOnExit();
+            ProcessBuilder pb = new ProcessBuilder("python3", tmpScript.toString());
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            Thread reader = new Thread(() -> {
+                try (BufferedReader br = new BufferedReader(
+                        new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        if (!line.isBlank()) System.out.println("  [dual] " + line);
+                    }
+                } catch (Exception ignore) {}
+            });
+            reader.setDaemon(true);
+            reader.start();
+            return process;
+        } catch (Exception e) {
+            System.out.println("  [WARN] Could not start dual camera view: " + e.getMessage());
+            return null;
+        }
+    }
+
     public static boolean run(AppLogger logger, BotConfig config) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 14: Dual Camera Live View");
+        System.out.println("  Test 13: Dual Camera Live View");
         System.out.println("====================================");
         System.out.println("  Left  : Camera Module 3 RGB  (CAM0)");
         System.out.println("  Right : ArduCam ToF depth     (CAM1)");

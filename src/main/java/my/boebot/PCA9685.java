@@ -42,8 +42,6 @@ public class PCA9685 {
     private static final double PWM_PERIOD_US = 20_000.0;
 
     private I2C i2c;
-    private Context pi4j;
-    private String ioId;
     private boolean initialized = false;
     private int pwmFrequencyHz = 50;
 
@@ -56,14 +54,11 @@ public class PCA9685 {
      * @throws Exception if I2C cannot be opened (e.g., not on Raspberry Pi)
      */
     public PCA9685(Context pi4j, int bus, int address) throws Exception {
-        this.pi4j = pi4j;
-
         // Use a unique id per instance. Pi4J keeps the IO id reserved in the
-        // runtime registry until the instance is shut down; a fixed id would
+        // runtime registry until the context shuts down; a fixed id would
         // collide on the second servo test in the same session ("IO instance
-        // [PCA9685] already exists"). A unique id avoids that, and close()
-        // shuts the instance down to free it.
-        this.ioId = "PCA9685-bus" + bus + "-0x" + Integer.toHexString(address)
+        // [PCA9685] already exists"). A unique id avoids that collision.
+        String ioId = "PCA9685-bus" + bus + "-0x" + Integer.toHexString(address)
             + "-" + System.nanoTime();
 
         I2CConfig i2cConfig = I2C.newConfigBuilder(pi4j)
@@ -189,27 +184,15 @@ public class PCA9685 {
     }
 
     /**
-     * Closes the I2C connection and removes the IO instance from the Pi4J
-     * registry so the next servo test can create a fresh one in the same
-     * session. Tries the registry shutdown first (frees the reserved id), then
-     * falls back to a plain close().
+     * Closes the I2C connection. Each instance uses a unique IO id (see the
+     * constructor), so closing the device handle is enough to let the next
+     * servo test create a fresh PCA9685 in the same session without an id
+     * collision.
      */
     public void close() {
-        boolean shutdownOk = false;
         try {
-            if (i2c != null && pi4j != null && ioId != null) {
-                // remove() shuts the instance down and frees the reserved id.
-                pi4j.registry().remove(ioId);
-                shutdownOk = true;
-            }
-        } catch (Exception e) {
-            // Fall through to plain close below.
-        }
-        try {
-            if (i2c != null && !shutdownOk) {
-                i2c.close();
-            }
             if (i2c != null) {
+                i2c.close();
                 System.out.println("[PCA9685] I2C connection closed.");
             }
         } catch (Exception e) {

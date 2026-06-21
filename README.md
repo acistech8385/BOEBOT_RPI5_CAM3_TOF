@@ -27,23 +27,24 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 
 ```
 ====================================
- BOEBOT RPi5 Hardware Test App v2.1
+ BOEBOT RPi5 Hardware Test App v2.2
 ====================================
 1  - System info
 2  - Check I2C Servo HAT
 3  - Test PCA9685 Servo HAT
-4  - Right wheel CH14  (8=fwd 2=back 5=stop ESC)
-5  - Left wheel CH15   (8=fwd 2=back 5=stop ESC)
+4  - Calibrate wheel neutral (1500us)
+5  - Right wheel CH14  (8=fwd+ 2=rev+ 5=stop ESC)
 6  - Both wheels auto sequence
-7  - Gripper CH0       (8=close 2=open 5=stop ESC)
-8  - Camera Module 3 still capture CAM0
-9  - Camera Module 3 live preview CAM0
-10 - ArduCam ToF SDK detection CAM1
-11 - ArduCam ToF live preview CAM1
-12 - ArduCam ToF capture/save CAM1
-13 - Full safe hardware test
-14 - Dual camera live view CAM0+CAM1
-15 - Calibrate wheel neutral (1500us)
+7  - Drive control    (8 fwd 2 back 4 left 6 right 5 stop)
+8  - Left wheel CH15   (8=fwd+ 2=rev+ 5=stop ESC)
+9  - Gripper CH0       (8=close 2=open 5=stop ESC)
+10 - Camera Module 3 still capture CAM0
+11 - Camera Module 3 live preview CAM0
+12 - ArduCam ToF SDK detection CAM1
+13 - Dual camera live view CAM0+CAM1
+14 - ArduCam ToF live preview CAM1
+15 - ArduCam ToF capture/save CAM1
+16 - Full test: drive + dual live camera
 0  - Exit
 ====================================
 ```
@@ -148,51 +149,15 @@ If there are new install requirements, run the install script again — it is sa
 
 > **ALWAYS lift the BOEBOT wheels off the ground before running any wheel servo test.**
 
-Options 4, 5, 6 and 7 run **immediately** with no typed confirmation — lift the
-wheels first. Only the full test (option 13) still asks you to type
-`WHEELS_LIFTED` before its wheel section.
+The servo and drive tests (options 4–9, 16) run **immediately** with no typed
+confirmation — lift the wheels first. Ctrl+C is always safe (it cuts all servo
+outputs).
 
 ---
 
 ## Servo Tests (interactive)
 
-### Option 4 — Right wheel CH14 / Option 5 — Left wheel CH15
-
-Drive one continuous-rotation wheel servo by key (no Enter needed):
-
-| Key | Action |
-|-----|--------|
-| `8` | Forward |
-| `2` | Backward |
-| `5` | Stop |
-| `ESC` | Stop and exit the test |
-
-The wheel keeps turning until you press another key. Left and right servos face
-opposite ways, so each side has its own forward pulse (right = 1450, left = 1550).
-
-### Option 6 — Both wheels, automatic sequence
-
-Runs this sequence with both wheels, then stops:
-
-1. Forward 2 s → pause 1 s
-2. Backward 2 s → pause 2 s
-3. Turn right 2 s (right wheel forward, left wheel backward) → pause 1 s
-4. Turn left 2 s (left wheel forward, right wheel backward) → pause 1 s → stop
-
-### Option 7 — MG90S gripper CH0
-
-Drive the gripper by key (no Enter needed):
-
-| Key | Action |
-|-----|--------|
-| `8` | Close (1900 µs) |
-| `2` | Open (1100 µs) |
-| `5` | Stop / hold current position |
-| `ESC` | Exit (gripper stays where it is) |
-
-If 8/2 feel reversed, swap `PULSE_CLOSE` and `PULSE_OPEN` in `GripperTest.java`.
-
-### Option 15 — Calibrate wheel neutral
+### Option 4 — Calibrate wheel neutral
 
 Holds **both** wheel servos at 1500 µs so you can trim each one to a true stop.
 Continuous-rotation servos rarely stop exactly at 1500 µs out of the box — they
@@ -206,8 +171,65 @@ needs adjusting will be moving.
 | `5` | Re-send 1500 µs to both wheels |
 | `ESC` / `q` | Exit |
 
-Once both wheels stop at 1500 µs, options 4/5/6 drive correctly with no code
-changes. Lift the wheels off the ground first; Ctrl+C is safe.
+**Do this first.** Once both wheels stop at 1500 µs, options 5/6/7/8 drive
+correctly with no code changes.
+
+### Option 5 — Right wheel CH14 / Option 8 — Left wheel CH15 (incremental)
+
+Drive one continuous-rotation wheel with **incremental speed** (no Enter needed):
+
+| Key | Action |
+|-----|--------|
+| `8` | Faster forward (press again to speed up) |
+| `2` | Faster reverse (press again to speed up) |
+| `5` | Stop |
+| `ESC` / `q` | Stop and exit |
+
+Speed steps from level 0 (stop) to ±5 (~full speed). Left and right servos face
+opposite ways, so each side has its own forward direction (handled in code).
+
+### Option 6 — Both wheels, automatic sequence
+
+Runs this sequence with both wheels, then stops:
+
+1. Forward 2 s → pause 1 s
+2. Backward 2 s → pause 2 s
+3. Turn right 2 s (right wheel back, left wheel forward) → pause 1 s
+4. Turn left 2 s (right wheel forward, left wheel back) → pause 1 s → stop
+
+### Option 7 — Drive control
+
+Drive the whole robot. The robot keeps moving until you press `5` or another
+direction (no Enter needed):
+
+| Key | Action |
+|-----|--------|
+| `8` | Forward |
+| `2` | Backward |
+| `4` | Turn left |
+| `6` | Turn right |
+| `5` | Stop |
+| `ESC` / `q` | Stop and exit |
+
+### Option 9 — MG90S gripper CH0
+
+Drive the gripper by key (no Enter needed):
+
+| Key | Action |
+|-----|--------|
+| `8` | Close (1900 µs) |
+| `2` | Open (1100 µs) |
+| `5` | Stop / hold current position |
+| `ESC` | Exit (gripper stays where it is) |
+
+If 8/2 feel reversed, swap `PULSE_CLOSE` and `PULSE_OPEN` in `GripperTest.java`.
+
+### Option 16 — Full test: drive + dual live camera
+
+Opens the dual camera live view (Camera Module 3 RGB | ArduCam ToF depth) **and**
+runs the drive control (same keys as option 7) at the same time — drive the robot
+from the terminal while watching both cameras. Needs a display for the cameras;
+with no display the camera is skipped and you can still drive.
 
 > Single-key control uses the Linux terminal raw mode (`stty`). Run the app in a
 > real Raspberry Pi terminal (local or SSH), not a pipe, for keys to register.
@@ -230,7 +252,7 @@ changes. Lift the wheels off the ground first; Ctrl+C is safe.
 
 ## Camera Tests (CAM0 — Camera Module 3)
 
-### Option 8 — Still Capture
+### Option 10 — Still Capture
 
 Captures a single image using `rpicam-still` (Bookworm) or `libcamera-still` (Bullseye).  
 Works in SSH sessions — **no display needed**.  
@@ -244,7 +266,7 @@ File:      cam3_20260620_203300.jpg
 Full path: /home/faix/.../logs/boebot-1/cam3_20260620_203300.jpg
 ```
 
-### Option 9 — Live Preview
+### Option 11 — Live Preview
 
 Opens a live camera preview window on the screen.  
 **Requires a display** — HDMI/DSI screen, VNC, or X11 forwarding (`ssh -X`).  
@@ -260,13 +282,13 @@ LIVE PREVIEW NOT AVAILABLE: no display detected. Use still capture test instead.
 
 ## ToF Camera Tests (CAM1 — ArduCam ToF)
 
-### Option 10 — SDK Detection
+### Option 12 — SDK Detection
 
 Checks if the ArduCam ToF SDK is installed at `~/Arducam_tof_camera`.  
 Checks Python 3, lists example files, and verifies `ArducamDepthCamera` is importable.  
 **No camera is opened.** PASS = SDK ready, FAIL = missing components with fix instructions.
 
-### Option 11 — Live Preview
+### Option 14 — Live Preview
 
 Opens a live depth + amplitude preview window using Python + OpenCV.  
 **Requires a display** — HDMI/DSI screen, VNC, or X11 forwarding.  
@@ -283,7 +305,7 @@ If no display is detected:
 LIVE PREVIEW NOT AVAILABLE: no display detected. Use still capture test instead.
 ```
 
-### Option 12 — Capture / Save
+### Option 15 — Capture / Save
 
 Captures a single ToF frame and saves output files.  
 **No display needed** — works in headless SSH sessions.
@@ -313,7 +335,7 @@ Full paths:
 
 ## Dual Camera View (CAM0 + CAM1 together)
 
-### Option 14 — Dual Live View
+### Option 13 — Dual Live View
 
 Shows **both cameras at once** in a single window, side by side:
 
@@ -393,24 +415,25 @@ BOEBOT_RPI5_CAM3_TOF/
     ├── BotConfig.java                  Loads config/boebot.properties
     ├── AppLogger.java                  Saves logs to logs/<hostname>/
     ├── PCA9685.java                    I2C driver for PCA9685 Servo HAT
-    ├── WheelSafety.java                WHEELS_LIFTED safety confirmation (option 13)
     ├── RawKey.java                     Single-keypress reader for interactive servo tests
+    ├── ServoSafety.java                Ctrl+C-safe servo shutdown (turns outputs off)
+    ├── InteractiveWheel.java           Shared incremental wheel control (options 5, 8)
     ├── SystemInfoTest.java             Option 1:  System information
     ├── I2CDetectTest.java              Option 2:  I2C detect / confirm 0x40
     ├── PCA9685InitTest.java            Option 3:  PCA9685 initialization
-    ├── RightWheelTest.java             Option 4:  Right wheel servo CH14
-    ├── LeftWheelTest.java              Option 5:  Left wheel servo CH15
-    ├── BothWheelsTest.java             Option 6:  Both wheel servos
-    ├── GripperTest.java                Option 7:  MG90S gripper servo CH0
-    ├── CameraModule3Test.java          Option 8:  Camera Module 3 still capture
-    ├── CameraModule3PreviewTest.java   Option 9:  Camera Module 3 live preview
-    ├── ToFCameraTest.java              Option 10: ArduCam ToF SDK detection
-    ├── ToFPreviewTest.java             Option 11: ArduCam ToF live preview
-    ├── ToFCaptureTest.java             Option 12: ArduCam ToF capture/save
-    ├── FullHardwareTest.java           Option 13: Full safe hardware test
-    ├── DualCameraViewTest.java         Option 14: Dual camera live view CAM0+CAM1
-    ├── CalibrateNeutralTest.java       Option 15: Calibrate wheel neutral (1500us)
-    └── ServoSafety.java                Ctrl+C-safe servo shutdown (turns outputs off)
+    ├── CalibrateNeutralTest.java       Option 4:  Calibrate wheel neutral (1500us)
+    ├── RightWheelTest.java             Option 5:  Right wheel CH14 (incremental)
+    ├── BothWheelsTest.java             Option 6:  Both wheels auto sequence
+    ├── DriveControlTest.java           Option 7:  Drive control (8/2/4/6, 5 stop)
+    ├── LeftWheelTest.java              Option 8:  Left wheel CH15 (incremental)
+    ├── GripperTest.java                Option 9:  MG90S gripper servo CH0
+    ├── CameraModule3Test.java          Option 10: Camera Module 3 still capture
+    ├── CameraModule3PreviewTest.java   Option 11: Camera Module 3 live preview
+    ├── ToFCameraTest.java              Option 12: ArduCam ToF SDK detection
+    ├── DualCameraViewTest.java         Option 13: Dual camera live view CAM0+CAM1
+    ├── ToFPreviewTest.java             Option 14: ArduCam ToF live preview
+    ├── ToFCaptureTest.java             Option 15: ArduCam ToF capture/save
+    └── FullDriveCameraTest.java        Option 16: Full test: drive + dual live camera
 ```
 
 ---

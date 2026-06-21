@@ -4,7 +4,7 @@ import com.pi4j.context.Context;
 import java.util.Scanner;
 
 /**
- * CalibrateNeutralTest - Menu Option 15: calibrate wheel servo neutral (stop).
+ * CalibrateNeutralTest - Menu Option 4: calibrate wheel servo neutral (stop).
  *
  * Continuous-rotation servos must be trimmed so they stop completely at the
  * neutral pulse (1500 us). This test holds BOTH wheel channels at 1500 us so
@@ -30,7 +30,7 @@ public class CalibrateNeutralTest {
                                Context pi4j, Scanner scanner) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 15: Calibrate Wheel Neutral (1500 us)");
+        System.out.println("  Test 4: Calibrate Wheel Neutral (1500 us)");
         System.out.println("====================================");
         System.out.println("  Right wheel : Servo HAT channel " + RIGHT_CH);
         System.out.println("  Left wheel  : Servo HAT channel " + LEFT_CH);
@@ -44,7 +44,7 @@ public class CalibrateNeutralTest {
         System.out.println("  Reminder: lift the wheels off the ground first.");
 
         logger.logSeparator();
-        logger.log("TEST 15: Calibrate Wheel Neutral - hold CH14+CH15 at 1500 us");
+        logger.log("TEST 4: Calibrate Wheel Neutral - hold CH14+CH15 at 1500 us");
 
         if (pi4j == null) {
             System.out.println("[RESULT] FAIL - Pi4J context not available.");

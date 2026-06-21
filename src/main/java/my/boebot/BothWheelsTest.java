@@ -96,20 +96,20 @@ public class BothWheelsTest {
             System.out.println("    Pause 1s...");
             Thread.sleep(DELAY_MS);
 
-            // 5. Turn right 2 s: right wheel forward, left wheel backward
-            System.out.println("[5] TURN RIGHT 2s (right fwd, left back)...");
-            logger.log("  TURN RIGHT: CH14=" + RIGHT_FORWARD + " (fwd), CH15=" + LEFT_BACKWARD + " (back) for 2s");
-            move(pca, RIGHT_FORWARD, LEFT_BACKWARD, MOVE_MS);
+            // 5. Turn right 2 s: right wheel backward, left wheel forward
+            System.out.println("[5] TURN RIGHT 2s (right back, left fwd)...");
+            logger.log("  TURN RIGHT: CH14=" + RIGHT_BACKWARD + " (back), CH15=" + LEFT_FORWARD + " (fwd) for 2s");
+            move(pca, RIGHT_BACKWARD, LEFT_FORWARD, MOVE_MS);
 
             // 6. Pause 1 s
             System.out.println("[6] Pause 1s...");
             stopBoth(pca);
             Thread.sleep(DELAY_MS);
 
-            // 7. Turn left 2 s: left wheel forward, right wheel backward
-            System.out.println("[7] TURN LEFT 2s (left fwd, right back)...");
-            logger.log("  TURN LEFT: CH15=" + LEFT_FORWARD + " (fwd), CH14=" + RIGHT_BACKWARD + " (back) for 2s");
-            move(pca, RIGHT_BACKWARD, LEFT_FORWARD, MOVE_MS);
+            // 7. Turn left 2 s: left wheel backward, right wheel forward
+            System.out.println("[7] TURN LEFT 2s (left back, right fwd)...");
+            logger.log("  TURN LEFT: CH14=" + RIGHT_FORWARD + " (fwd), CH15=" + LEFT_BACKWARD + " (back) for 2s");
+            move(pca, RIGHT_FORWARD, LEFT_BACKWARD, MOVE_MS);
 
             // 8. Pause 1 s
             System.out.println("[8] Pause 1s...");

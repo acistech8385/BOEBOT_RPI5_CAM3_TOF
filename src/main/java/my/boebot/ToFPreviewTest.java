@@ -126,13 +126,13 @@ public class ToFPreviewTest {
     public static boolean run(AppLogger logger, BotConfig config) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 11: ArduCam ToF Live Preview CAM1");
+        System.out.println("  Test 14: ArduCam ToF Live Preview CAM1");
         System.out.println("====================================");
         System.out.println("  Camera port : CAM/DISP 1");
         System.out.println("  Type        : Live depth + confidence preview window");
 
         logger.logSeparator();
-        logger.log("TEST 11: ArduCam ToF Live Preview - CAM/DISP 1");
+        logger.log("TEST 14: ArduCam ToF Live Preview - CAM/DISP 1");
 
         // ---- Check display ----
         String displayEnv  = System.getenv("DISPLAY");
