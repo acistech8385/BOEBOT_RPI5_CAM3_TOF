@@ -64,9 +64,11 @@ public class FullHardwareTest {
         pause();
 
         // ---- Test 7: Gripper (CH0) ----
+        // The interactive GripperTest waits for ESC; the full test uses an
+        // automated sweep so it runs unattended.
         System.out.println();
-        System.out.println("[FULL TEST] Running Test 7: Gripper Servo CH0...");
-        gripperOk = GripperTest.run(logger, config, pi4j);
+        System.out.println("[FULL TEST] Running Test 7: Gripper Servo CH0 (auto sweep)...");
+        gripperOk = runGripperSweep(logger, config, pi4j);
         pause();
 
         // ---- Test 8: Camera Module 3 still capture ----
@@ -199,6 +201,38 @@ public class FullHardwareTest {
         } finally {
             if (pca != null) {
                 try { pca.setServoPulse(config.getLeftWheelChannel(), 1500); } catch (Exception ignore) {}
+                pca.close();
+            }
+        }
+    }
+
+    private static boolean runGripperSweep(AppLogger logger,
+            BotConfig config, Context pi4j) {
+        if (pi4j == null) {
+            System.out.println("[RESULT] FAIL - Pi4J context not available.");
+            logger.logFail("Gripper (Full Test)", "Pi4J not available");
+            return false;
+        }
+        PCA9685 pca = null;
+        try {
+            pca = new PCA9685(pi4j, config.getI2cBus(), config.getI2cAddress());
+            pca.initialize(config.getPwmFrequency());
+            int ch = 0;  // gripper channel
+            pca.setServoPulse(ch, 1500); Thread.sleep(700);  // center
+            pca.setServoPulse(ch, 1100); Thread.sleep(700);  // open
+            pca.setServoPulse(ch, 1500); Thread.sleep(700);  // center
+            pca.setServoPulse(ch, 1900); Thread.sleep(700);  // close
+            pca.setServoPulse(ch, 1500); Thread.sleep(700);  // center
+            logger.logPass("Gripper CH0 (Full Test)");
+            System.out.println("[RESULT] PASS - Gripper sweep complete.");
+            return true;
+        } catch (Exception e) {
+            logger.logFail("Gripper (Full Test)", e.getMessage());
+            System.out.println("[RESULT] FAIL - " + e.getMessage());
+            return false;
+        } finally {
+            if (pca != null) {
+                try { pca.setServoPulse(0, 1500); } catch (Exception ignore) {}
                 pca.close();
             }
         }

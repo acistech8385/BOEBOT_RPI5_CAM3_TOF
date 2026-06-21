@@ -4,75 +4,60 @@ import com.pi4j.context.Context;
 import java.util.Scanner;
 
 /**
- * BothWheelsTest - Menu Option 6: Test both wheel servos together.
+ * BothWheelsTest - Menu Option 6: automated movement sequence for both wheels.
  *
- * Tests the right wheel (Servo HAT channel 14) and
- * left wheel (Servo HAT channel 15) together.
+ * Right wheel = Servo HAT channel 14, Left wheel = Servo HAT channel 15
+ * (Parallax continuous rotation servos).
  *
- * Movement sequence:
- *   1. Both wheels neutral (stop)
- *   2. Short forward test (conservative values)
- *   3. Both wheels stop
- *   4. Short reverse test
- *   5. Both wheels stop
+ * Sequence (each move 2 s, 1 s pause between):
+ *   1. Forward          2 s
+ *   2. Pause            1 s
+ *   3. Backward         2 s
+ *   4. Pause            1 s + 1 s
+ *   5. Turn right       2 s  (right wheel forward, left wheel backward)
+ *   6. Pause            1 s
+ *   7. Turn left        2 s  (left wheel forward, right wheel backward)
+ *   8. Pause            1 s
+ *   9. Stop and end
  *
- * Safety: User must type WHEELS_LIFTED before any movement.
- *
- * Note on wheel direction:
- *   Because the left and right wheels face opposite directions on the robot,
- *   "forward" for the right wheel may need the OPPOSITE pulse from the left wheel.
- *   If the robot moves in the wrong direction, the pulse values may need adjustment.
- *   This app will print a reminder to check the direction.
+ * Pulse values: 1500 = stop.
+ *   Right wheel: 1450 = forward, 1550 = backward.
+ *   Left wheel:  1550 = forward, 1450 = backward (faces opposite way).
  */
 public class BothWheelsTest {
 
-    // Servo HAT channels
     private static final int RIGHT_CH = 14;
     private static final int LEFT_CH  = 15;
 
-    // Pulse values (us)
-    private static final int STOP    = 1500;  // Neutral - both wheels stop
+    private static final int STOP = 1500;
 
-    // Conservative forward/reverse values for combined test
-    // Right wheel: 1450 us = forward direction
-    // Left wheel:  1550 us = forward direction (opposite servo facing)
-    // If robot goes backwards, swap these.
-    private static final int RIGHT_FORWARD = 1450;
-    private static final int LEFT_FORWARD  = 1550;
+    // Per-wheel forward / backward (left is mirrored vs right)
+    private static final int RIGHT_FORWARD  = 1450;
+    private static final int RIGHT_BACKWARD = 1550;
+    private static final int LEFT_FORWARD   = 1550;
+    private static final int LEFT_BACKWARD  = 1450;
 
-    private static final int RIGHT_REVERSE = 1550;
-    private static final int LEFT_REVERSE  = 1450;
-
-    // Movement duration: 1 second max
-    private static final int MOVE_MS = 1000;
+    private static final int MOVE_MS  = 2000;  // each motion lasts 2 seconds
+    private static final int DELAY_MS = 1000;  // pause between motions
 
     public static boolean run(AppLogger logger, BotConfig config,
                                Context pi4j, Scanner scanner) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 6: Both Wheel Servos");
+        System.out.println("  Test 6: Both Wheel Servos (auto sequence)");
         System.out.println("====================================");
         System.out.println("  Right wheel : Servo HAT channel " + RIGHT_CH);
         System.out.println("  Left wheel  : Servo HAT channel " + LEFT_CH);
         System.out.println();
-        System.out.println("  NOTE: Left and right servos face OPPOSITE directions.");
-        System.out.println("  Forward = CH14 at 1450 us + CH15 at 1550 us.");
-        System.out.println("  If the robot moves backwards, pulse values need adjustment.");
+        System.out.println("  Sequence: forward 2s -> back 2s -> turn right 2s -> turn left 2s");
+        System.out.println("  Reminder: lift the wheels off the ground before this runs.");
 
         logger.logSeparator();
-        logger.log("TEST 6: Both Wheel Servos");
-        logger.log("  Right wheel : Servo HAT channel " + RIGHT_CH);
-        logger.log("  Left wheel  : Servo HAT channel " + LEFT_CH);
+        logger.log("TEST 6: Both Wheel Servos (auto sequence)");
 
         if (pi4j == null) {
             System.out.println("[RESULT] FAIL - Pi4J context not available.");
             logger.logFail("Both Wheels Test", "Pi4J not available");
-            return false;
-        }
-
-        // SAFETY CHECK - must type WHEELS_LIFTED
-        if (!WheelSafety.confirmWheelsLifted(scanner)) {
-            logger.log("BOTH WHEEL TEST: Skipped - WHEELS_LIFTED not confirmed.");
             return false;
         }
 
@@ -81,48 +66,61 @@ public class BothWheelsTest {
             pca = new PCA9685(pi4j, config.getI2cBus(), config.getI2cAddress());
             pca.initialize(config.getPwmFrequency());
 
-            // Step 1: Both wheels neutral (stop)
-            System.out.println("[Step 1] Both wheels neutral (stop) - 1500 us ...");
-            logger.log("  CH14 + CH15 -> 1500 us (neutral/stop)");
-            pca.setServoPulse(RIGHT_CH, STOP);
-            pca.setServoPulse(LEFT_CH, STOP);
+            // Start stopped
+            stopBoth(pca);
             Thread.sleep(500);
 
-            // Step 2: Short forward test
-            System.out.println("[Step 2] Forward test: CH14=1450us, CH15=1550us for 1 second ...");
-            logger.log("  CH14 -> 1450 us, CH15 -> 1550 us (forward) for 1 second");
-            pca.setServoPulse(RIGHT_CH, RIGHT_FORWARD);
-            pca.setServoPulse(LEFT_CH, LEFT_FORWARD);
-            Thread.sleep(MOVE_MS);
+            // 1. Forward 2 s
+            System.out.println("[1] FORWARD 2s (CH14=1450, CH15=1550)...");
+            logger.log("  FORWARD: CH14=1450, CH15=1550 for 2s");
+            move(pca, RIGHT_FORWARD, LEFT_FORWARD, MOVE_MS);
 
-            // Step 3: Stop
-            System.out.println("[Step 3] Stop - 1500 us ...");
-            logger.log("  CH14 + CH15 -> 1500 us (stop)");
-            pca.setServoPulse(RIGHT_CH, STOP);
-            pca.setServoPulse(LEFT_CH, STOP);
-            Thread.sleep(500);
+            // 2. Pause 1 s
+            System.out.println("[2] Pause 1s...");
+            stopBoth(pca);
+            Thread.sleep(DELAY_MS);
 
-            // Step 4: Short reverse test
-            System.out.println("[Step 4] Reverse test: CH14=1550us, CH15=1450us for 1 second ...");
-            logger.log("  CH14 -> 1550 us, CH15 -> 1450 us (reverse) for 1 second");
-            pca.setServoPulse(RIGHT_CH, RIGHT_REVERSE);
-            pca.setServoPulse(LEFT_CH, LEFT_REVERSE);
-            Thread.sleep(MOVE_MS);
+            // 3. Backward 2 s
+            System.out.println("[3] BACKWARD 2s (CH14=1550, CH15=1450)...");
+            logger.log("  BACKWARD: CH14=1550, CH15=1450 for 2s");
+            move(pca, RIGHT_BACKWARD, LEFT_BACKWARD, MOVE_MS);
 
-            // Step 5: Stop
-            System.out.println("[Step 5] Stop - 1500 us ...");
-            logger.log("  CH14 + CH15 -> 1500 us (stop)");
-            pca.setServoPulse(RIGHT_CH, STOP);
-            pca.setServoPulse(LEFT_CH, STOP);
+            // 4. Pause 1 s + 1 s
+            System.out.println("[4] Pause 1s...");
+            stopBoth(pca);
+            Thread.sleep(DELAY_MS);
+            System.out.println("    Pause 1s...");
+            Thread.sleep(DELAY_MS);
+
+            // 5. Turn right 2 s: right wheel forward, left wheel backward
+            System.out.println("[5] TURN RIGHT 2s (right fwd, left back)...");
+            logger.log("  TURN RIGHT: CH14=" + RIGHT_FORWARD + " (fwd), CH15=" + LEFT_BACKWARD + " (back) for 2s");
+            move(pca, RIGHT_FORWARD, LEFT_BACKWARD, MOVE_MS);
+
+            // 6. Pause 1 s
+            System.out.println("[6] Pause 1s...");
+            stopBoth(pca);
+            Thread.sleep(DELAY_MS);
+
+            // 7. Turn left 2 s: left wheel forward, right wheel backward
+            System.out.println("[7] TURN LEFT 2s (left fwd, right back)...");
+            logger.log("  TURN LEFT: CH15=" + LEFT_FORWARD + " (fwd), CH14=" + RIGHT_BACKWARD + " (back) for 2s");
+            move(pca, RIGHT_BACKWARD, LEFT_FORWARD, MOVE_MS);
+
+            // 8. Pause 1 s
+            System.out.println("[8] Pause 1s...");
+            stopBoth(pca);
+            Thread.sleep(DELAY_MS);
+
+            // 9. Stop and end
+            System.out.println("[9] STOP. Sequence complete.");
+            stopBoth(pca);
             Thread.sleep(200);
 
-            logger.logPass("Both Wheel Servos CH14+CH15");
+            logger.logPass("Both Wheel Servos CH14+CH15 (auto sequence)");
             System.out.println();
-            System.out.println("[RESULT] PASS - Both wheel servos test complete.");
-            System.out.println();
-            System.out.println("  >>> If the wheel direction was wrong:");
-            System.out.println("      Swap the forward/reverse pulse values in BothWheelsTest.java");
-            System.out.println("      RIGHT_FORWARD = 1550, LEFT_FORWARD = 1450 (or vice versa).");
+            System.out.println("[RESULT] PASS - Movement sequence complete.");
+            System.out.println("  If a direction looked wrong, swap that wheel's forward/backward pulses.");
             return true;
 
         } catch (Exception e) {
@@ -132,12 +130,21 @@ public class BothWheelsTest {
 
         } finally {
             if (pca != null) {
-                try {
-                    pca.setServoPulse(RIGHT_CH, STOP);
-                    pca.setServoPulse(LEFT_CH, STOP);
-                } catch (Exception ignore) {}
+                try { stopBoth(pca); } catch (Exception ignore) {}
                 pca.close();
             }
         }
+    }
+
+    private static void move(PCA9685 pca, int rightPulse, int leftPulse, int ms)
+            throws InterruptedException {
+        pca.setServoPulse(RIGHT_CH, rightPulse);
+        pca.setServoPulse(LEFT_CH, leftPulse);
+        Thread.sleep(ms);
+    }
+
+    private static void stopBoth(PCA9685 pca) {
+        pca.setServoPulse(RIGHT_CH, STOP);
+        pca.setServoPulse(LEFT_CH, STOP);
     }
 }

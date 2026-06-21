@@ -4,41 +4,39 @@ import com.pi4j.context.Context;
 import java.util.Scanner;
 
 /**
- * RightWheelTest - Menu Option 4: Test right wheel servo on Servo HAT channel 14.
+ * RightWheelTest - Menu Option 4: interactive right wheel servo on Servo HAT channel 14.
  *
- * The right wheel uses a Parallax continuous rotation servo.
- * Pulse widths:
- *   1500 us = neutral / stop
- *   1450 us = slow movement in one direction
- *   1550 us = slow movement in opposite direction
+ * Parallax continuous rotation servo. Key controls (no Enter needed):
+ *   8   = drive forward
+ *   2   = drive backward
+ *   5   = stop
+ *   ESC = stop and exit the test
  *
- * Safety: User must type WHEELS_LIFTED before any movement.
- * Movement duration: max 1 second per direction.
+ * Pulse widths: 1500 = stop, 1450 = forward, 1550 = backward.
+ * (Right and left wheels face opposite ways; "forward" differs per side.)
  */
 public class RightWheelTest {
 
-    // Servo pulse values (microseconds)
-    private static final int PULSE_STOP    = 1500;  // Neutral - servo stops
-    private static final int PULSE_DIR_A   = 1450;  // Slow movement direction A
-    private static final int PULSE_DIR_B   = 1550;  // Slow movement direction B
+    private static final int PULSE_STOP     = 1500;  // Neutral - servo stops
+    private static final int PULSE_FORWARD  = 1450;  // Drive forward
+    private static final int PULSE_BACKWARD = 1550;  // Drive backward
 
-    // Channel for right wheel
     private static final int RIGHT_WHEEL_CH = 14;
-
-    // Movement duration: 1 second max
-    private static final int MOVE_MS = 1000;
 
     public static boolean run(AppLogger logger, BotConfig config,
                                Context pi4j, Scanner scanner) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 4: Right Wheel Servo CH14");
+        System.out.println("  Test 4: Right Wheel Servo CH14 (interactive)");
         System.out.println("====================================");
         System.out.println("  Servo HAT channel : " + RIGHT_WHEEL_CH);
         System.out.println("  Servo type        : Parallax continuous rotation");
+        System.out.println();
+        System.out.println("  Controls:  8 = forward   2 = backward   5 = stop   ESC = exit");
+        System.out.println("  Reminder: lift the wheels off the ground before driving.");
 
         logger.logSeparator();
-        logger.log("TEST 4: Right Wheel Servo - Servo HAT channel " + RIGHT_WHEEL_CH);
+        logger.log("TEST 4: Right Wheel Servo (interactive) - Servo HAT channel " + RIGHT_WHEEL_CH);
 
         if (pi4j == null) {
             System.out.println("[RESULT] FAIL - Pi4J context not available.");
@@ -46,62 +44,59 @@ public class RightWheelTest {
             return false;
         }
 
-        // SAFETY CHECK - must type WHEELS_LIFTED
-        if (!WheelSafety.confirmWheelsLifted(scanner)) {
-            logger.log("RIGHT WHEEL TEST: Skipped - WHEELS_LIFTED not confirmed.");
-            return false;
-        }
-
         PCA9685 pca = null;
         try {
-            // Initialize PCA9685
             pca = new PCA9685(pi4j, config.getI2cBus(), config.getI2cAddress());
             pca.initialize(config.getPwmFrequency());
-
-            // Step 1: Set neutral (stop)
-            System.out.println("[Step 1] Setting neutral (stop) - 1500 us ...");
-            logger.log("  CH14 -> 1500 us (neutral/stop)");
             pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_STOP);
-            Thread.sleep(500);
 
-            // Step 2: Move direction A (1450 us) for max 1 second
-            System.out.println("[Step 2] Moving direction A - 1450 us for 1 second ...");
-            logger.log("  CH14 -> 1450 us (direction A) for 1 second");
-            pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_DIR_A);
-            Thread.sleep(MOVE_MS);
-
-            // Step 3: Stop
-            System.out.println("[Step 3] Stopping - 1500 us ...");
-            logger.log("  CH14 -> 1500 us (stop)");
-            pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_STOP);
-            Thread.sleep(500);
-
-            // Step 4: Move direction B (1550 us) for max 1 second
-            System.out.println("[Step 4] Moving direction B - 1550 us for 1 second ...");
-            logger.log("  CH14 -> 1550 us (direction B) for 1 second");
-            pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_DIR_B);
-            Thread.sleep(MOVE_MS);
-
-            // Step 5: Stop
-            System.out.println("[Step 5] Stopping - 1500 us ...");
-            logger.log("  CH14 -> 1500 us (stop)");
-            pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_STOP);
-            Thread.sleep(200);
-
-            logger.logPass("Right Wheel Servo CH14");
             System.out.println();
-            System.out.println("[RESULT] PASS - Right wheel servo test complete.");
-            System.out.println("  Note: If the wheel direction seems reversed, swap 1450/1550 us.");
+            System.out.println("  Ready. Press 8 / 2 / 5, or ESC to exit...");
+            System.out.println();
+
+            RawKey.enableRawMode();
+            boolean exit = false;
+            while (!exit) {
+                int key = RawKey.readKey();
+                switch (key) {
+                    case '8' -> {
+                        pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_FORWARD);
+                        System.out.println("  [8] FORWARD  (CH14 -> 1450 us)");
+                        logger.log("  CH14 -> 1450 us (forward)");
+                    }
+                    case '2' -> {
+                        pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_BACKWARD);
+                        System.out.println("  [2] BACKWARD (CH14 -> 1550 us)");
+                        logger.log("  CH14 -> 1550 us (backward)");
+                    }
+                    case '5' -> {
+                        pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_STOP);
+                        System.out.println("  [5] STOP     (CH14 -> 1500 us)");
+                        logger.log("  CH14 -> 1500 us (stop)");
+                    }
+                    case 27, -1 -> {
+                        pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_STOP);
+                        System.out.println("  [ESC] Exiting right wheel test. Stopped.");
+                        exit = true;
+                    }
+                    default -> { /* ignore other keys */ }
+                }
+            }
+            RawKey.restoreMode();
+
+            logger.logPass("Right Wheel Servo CH14 (interactive)");
+            System.out.println();
+            System.out.println("[RESULT] PASS - Right wheel interactive test ended.");
             return true;
 
         } catch (Exception e) {
+            RawKey.restoreMode();
             System.out.println("[RESULT] FAIL - " + e.getMessage());
             logger.logFail("Right Wheel Servo CH14", e.getMessage());
             return false;
 
         } finally {
             if (pca != null) {
-                // Make sure servo is at neutral before closing
                 try { pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_STOP); } catch (Exception ignore) {}
                 pca.close();
             }

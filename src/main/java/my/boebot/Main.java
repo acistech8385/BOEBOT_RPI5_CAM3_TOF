@@ -74,7 +74,7 @@ public class Main {
                 case "4"  -> RightWheelTest.run(logger, config, pi4j, scanner);
                 case "5"  -> LeftWheelTest.run(logger, config, pi4j, scanner);
                 case "6"  -> BothWheelsTest.run(logger, config, pi4j, scanner);
-                case "7"  -> GripperTest.run(logger, config, pi4j);
+                case "7"  -> GripperTest.run(logger, config, pi4j, scanner);
                 case "8"  -> CameraModule3Test.run(logger, config);
                 case "9"  -> CameraModule3PreviewTest.run(logger, config);
                 case "10" -> ToFCameraTest.run(logger, config);
@@ -114,15 +114,15 @@ public class Main {
     private static void printMenu() {
         System.out.println();
         System.out.println("====================================");
-        System.out.println(" BOEBOT RPi5 Hardware Test App v1.9");
+        System.out.println(" BOEBOT RPi5 Hardware Test App v2.0");
         System.out.println("====================================");
         System.out.println("1  - System info");
         System.out.println("2  - Check I2C Servo HAT");
         System.out.println("3  - Test PCA9685 Servo HAT");
-        System.out.println("4  - Test right wheel servo CH14");
-        System.out.println("5  - Test left wheel servo CH15");
-        System.out.println("6  - Test both wheel servos");
-        System.out.println("7  - Test MG90S gripper CH0");
+        System.out.println("4  - Right wheel CH14  (8=fwd 2=back 5=stop ESC)");
+        System.out.println("5  - Left wheel CH15   (8=fwd 2=back 5=stop ESC)");
+        System.out.println("6  - Both wheels auto sequence");
+        System.out.println("7  - Gripper CH0       (8=close 2=open 5=stop ESC)");
         System.out.println("8  - Camera Module 3 still capture CAM0");
         System.out.println("9  - Camera Module 3 live preview CAM0");
         System.out.println("10 - ArduCam ToF SDK detection CAM1");

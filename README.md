@@ -27,15 +27,15 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 
 ```
 ====================================
- BOEBOT RPi5 Hardware Test App v1.9
+ BOEBOT RPi5 Hardware Test App v2.0
 ====================================
 1  - System info
 2  - Check I2C Servo HAT
 3  - Test PCA9685 Servo HAT
-4  - Test right wheel servo CH14
-5  - Test left wheel servo CH15
-6  - Test both wheel servos
-7  - Test MG90S gripper CH0
+4  - Right wheel CH14  (8=fwd 2=back 5=stop ESC)
+5  - Left wheel CH15   (8=fwd 2=back 5=stop ESC)
+6  - Both wheels auto sequence
+7  - Gripper CH0       (8=close 2=open 5=stop ESC)
 8  - Camera Module 3 still capture CAM0
 9  - Camera Module 3 live preview CAM0
 10 - ArduCam ToF SDK detection CAM1
@@ -147,16 +147,52 @@ If there are new install requirements, run the install script again — it is sa
 
 > **ALWAYS lift the BOEBOT wheels off the ground before running any wheel servo test.**
 
-Before any wheel test (options 4, 5, 6, and the wheel section of option 13),  
-the app will ask you to type **exactly**:
+Options 4, 5, 6 and 7 run **immediately** with no typed confirmation — lift the
+wheels first. Only the full test (option 13) still asks you to type
+`WHEELS_LIFTED` before its wheel section.
 
-```
-WHEELS_LIFTED
-```
+---
 
-If you type anything else, the wheel test is **cancelled immediately**.
+## Servo Tests (interactive)
 
-Wheel movement duration is limited to **1 second maximum** per direction.
+### Option 4 — Right wheel CH14 / Option 5 — Left wheel CH15
+
+Drive one continuous-rotation wheel servo by key (no Enter needed):
+
+| Key | Action |
+|-----|--------|
+| `8` | Forward |
+| `2` | Backward |
+| `5` | Stop |
+| `ESC` | Stop and exit the test |
+
+The wheel keeps turning until you press another key. Left and right servos face
+opposite ways, so each side has its own forward pulse (right = 1450, left = 1550).
+
+### Option 6 — Both wheels, automatic sequence
+
+Runs this sequence with both wheels, then stops:
+
+1. Forward 2 s → pause 1 s
+2. Backward 2 s → pause 2 s
+3. Turn right 2 s (right wheel forward, left wheel backward) → pause 1 s
+4. Turn left 2 s (left wheel forward, right wheel backward) → pause 1 s → stop
+
+### Option 7 — MG90S gripper CH0
+
+Drive the gripper by key (no Enter needed):
+
+| Key | Action |
+|-----|--------|
+| `8` | Close (1900 µs) |
+| `2` | Open (1100 µs) |
+| `5` | Stop / hold current position |
+| `ESC` | Exit (gripper stays where it is) |
+
+If 8/2 feel reversed, swap `PULSE_CLOSE` and `PULSE_OPEN` in `GripperTest.java`.
+
+> Single-key control uses the Linux terminal raw mode (`stty`). Run the app in a
+> real Raspberry Pi terminal (local or SSH), not a pipe, for keys to register.
 
 ---
 
@@ -325,7 +361,8 @@ BOEBOT_RPI5_CAM3_TOF/
     ├── BotConfig.java                  Loads config/boebot.properties
     ├── AppLogger.java                  Saves logs to logs/<hostname>/
     ├── PCA9685.java                    I2C driver for PCA9685 Servo HAT
-    ├── WheelSafety.java                WHEELS_LIFTED safety confirmation
+    ├── WheelSafety.java                WHEELS_LIFTED safety confirmation (option 13)
+    ├── RawKey.java                     Single-keypress reader for interactive servo tests
     ├── SystemInfoTest.java             Option 1:  System information
     ├── I2CDetectTest.java              Option 2:  I2C detect / confirm 0x40
     ├── PCA9685InitTest.java            Option 3:  PCA9685 initialization
