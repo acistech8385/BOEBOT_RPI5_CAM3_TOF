@@ -45,13 +45,18 @@ public class RightWheelTest {
         }
 
         PCA9685 pca = null;
+        Thread stopHook = null;
         try {
             pca = new PCA9685(pi4j, config.getI2cBus(), config.getI2cAddress());
             pca.initialize(config.getPwmFrequency());
             pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_STOP);
 
+            // Safety: stop the servo even if the user presses Ctrl+C.
+            stopHook = ServoSafety.installStopHook(config.getI2cBus(), config.getI2cAddress());
+
             System.out.println();
-            System.out.println("  Ready. Press 8 / 2 / 5, or ESC to exit...");
+            System.out.println("  Ready. Press 8 / 2 / 5, or ESC (or q) to exit...");
+            System.out.println("  (If a single key does nothing, press Enter after it.)");
             System.out.println();
 
             RawKey.enableRawMode();
@@ -74,9 +79,9 @@ public class RightWheelTest {
                         System.out.println("  [5] STOP     (CH14 -> 1500 us)");
                         logger.log("  CH14 -> 1500 us (stop)");
                     }
-                    case 27, -1 -> {
+                    case 27, 'q', 'Q', -1 -> {
                         pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_STOP);
-                        System.out.println("  [ESC] Exiting right wheel test. Stopped.");
+                        System.out.println("  [exit] Stopping right wheel test.");
                         exit = true;
                     }
                     default -> { /* ignore other keys */ }
@@ -100,6 +105,7 @@ public class RightWheelTest {
                 try { pca.setServoPulse(RIGHT_WHEEL_CH, PULSE_STOP); } catch (Exception ignore) {}
                 pca.close();
             }
+            ServoSafety.removeStopHook(stopHook);
         }
     }
 }

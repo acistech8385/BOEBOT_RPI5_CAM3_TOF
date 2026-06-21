@@ -20,12 +20,13 @@ public final class RawKey {
 
     /** Switch the terminal to raw mode: keys arrive one at a time, no echo. */
     public static void enableRawMode() {
-        runStty("stty -echo -icanon min 1 < /dev/tty");
+        // min 1 time 0 = return as soon as one byte is available, no Enter needed.
+        runStty("stty -echo -icanon min 1 time 0 < /dev/tty");
     }
 
     /** Restore normal terminal mode (line buffered, echo on). */
     public static void restoreMode() {
-        runStty("stty echo icanon < /dev/tty");
+        runStty("stty sane < /dev/tty");
     }
 
     /**

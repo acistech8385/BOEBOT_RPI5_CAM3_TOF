@@ -48,6 +48,7 @@ public class GripperTest {
         }
 
         PCA9685 pca = null;
+        Thread stopHook = null;
         try {
             pca = new PCA9685(pi4j, config.getI2cBus(), config.getI2cAddress());
             pca.initialize(config.getPwmFrequency());
@@ -55,8 +56,12 @@ public class GripperTest {
             int currentPulse = PULSE_CENTER;
             pca.setServoPulse(GRIPPER_CH, currentPulse);
 
+            // Safety: cut servo output even if the user presses Ctrl+C.
+            stopHook = ServoSafety.installStopHook(config.getI2cBus(), config.getI2cAddress());
+
             System.out.println();
-            System.out.println("  Centered (1500 us). Press 8 / 2 / 5, or ESC to exit...");
+            System.out.println("  Centered (1500 us). Press 8 / 2 / 5, or ESC (or q) to exit...");
+            System.out.println("  (If a single key does nothing, press Enter after it.)");
             System.out.println();
 
             RawKey.enableRawMode();
@@ -81,8 +86,8 @@ public class GripperTest {
                         System.out.println("  [5] STOP  (hold at " + currentPulse + " us)");
                         logger.log("  CH0 hold at " + currentPulse + " us (stop)");
                     }
-                    case 27, -1 -> {
-                        System.out.println("  [ESC] Exiting gripper test. Held at " + currentPulse + " us.");
+                    case 27, 'q', 'Q', -1 -> {
+                        System.out.println("  [exit] Ending gripper test. Held at " + currentPulse + " us.");
                         exit = true;
                     }
                     default -> { /* ignore other keys */ }
@@ -105,6 +110,7 @@ public class GripperTest {
             if (pca != null) {
                 pca.close();
             }
+            ServoSafety.removeStopHook(stopHook);
         }
     }
 }

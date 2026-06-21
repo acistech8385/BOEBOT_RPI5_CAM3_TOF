@@ -193,6 +193,20 @@ If 8/2 feel reversed, swap `PULSE_CLOSE` and `PULSE_OPEN` in `GripperTest.java`.
 
 > Single-key control uses the Linux terminal raw mode (`stty`). Run the app in a
 > real Raspberry Pi terminal (local or SSH), not a pipe, for keys to register.
+> If a single key does nothing, press **Enter** after it (`8` then Enter, etc.).
+>
+> **Ctrl+C is safe:** a shutdown hook turns OFF all PCA9685 outputs and restores
+> the terminal, so the servo stops even if you force-quit.
+>
+> **Wheel keeps creeping at "stop"?** The continuous-rotation servo needs
+> calibration — send 1500 µs (press `5`) and turn the small potentiometer on the
+> servo body until it stops completely. 1500 µs is not a guaranteed stop until
+> calibrated.
+>
+> **Emergency stop (any time), without the app:**
+> ```bash
+> i2cset -y 1 0x40 0xFD 0x10    # turn OFF all servo outputs
+> ```
 
 ---
 

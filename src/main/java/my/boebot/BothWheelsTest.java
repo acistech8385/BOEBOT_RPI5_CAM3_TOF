@@ -62,9 +62,13 @@ public class BothWheelsTest {
         }
 
         PCA9685 pca = null;
+        Thread stopHook = null;
         try {
             pca = new PCA9685(pi4j, config.getI2cBus(), config.getI2cAddress());
             pca.initialize(config.getPwmFrequency());
+
+            // Safety: stop both wheels even if the user presses Ctrl+C mid-sequence.
+            stopHook = ServoSafety.installStopHook(config.getI2cBus(), config.getI2cAddress());
 
             // Start stopped
             stopBoth(pca);
@@ -133,6 +137,7 @@ public class BothWheelsTest {
                 try { stopBoth(pca); } catch (Exception ignore) {}
                 pca.close();
             }
+            ServoSafety.removeStopHook(stopHook);
         }
     }
 
