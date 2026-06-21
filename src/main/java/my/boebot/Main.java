@@ -25,6 +25,7 @@ import java.util.Scanner;
  *   12 - ArduCam ToF capture/save CAM1
  *   13 - Full safe hardware test
  *   14 - Dual camera live view (CAM0 RGB + CAM1 ToF)
+ *   15 - Calibrate wheel neutral (hold 1500 us)
  *   0  - Exit
  */
 public class Main {
@@ -82,6 +83,7 @@ public class Main {
                 case "12" -> ToFCaptureTest.run(logger, config);
                 case "13" -> FullHardwareTest.run(logger, config, pi4j, scanner);
                 case "14" -> DualCameraViewTest.run(logger, config);
+                case "15" -> CalibrateNeutralTest.run(logger, config, pi4j, scanner);
                 case "0"  -> {
                     System.out.println();
                     System.out.println("Exiting BOEBOT Hardware Test App.");
@@ -90,7 +92,7 @@ public class Main {
                 }
                 default -> {
                     System.out.println("Invalid choice: \"" + input + "\"");
-                    System.out.println("Please enter a number from the menu (0-14).");
+                    System.out.println("Please enter a number from the menu (0-15).");
                 }
             }
 
@@ -114,7 +116,7 @@ public class Main {
     private static void printMenu() {
         System.out.println();
         System.out.println("====================================");
-        System.out.println(" BOEBOT RPi5 Hardware Test App v2.0");
+        System.out.println(" BOEBOT RPi5 Hardware Test App v2.1");
         System.out.println("====================================");
         System.out.println("1  - System info");
         System.out.println("2  - Check I2C Servo HAT");
@@ -130,6 +132,7 @@ public class Main {
         System.out.println("12 - ArduCam ToF capture/save CAM1");
         System.out.println("13 - Full safe hardware test");
         System.out.println("14 - Dual camera live view CAM0+CAM1");
+        System.out.println("15 - Calibrate wheel neutral (1500us)");
         System.out.println("0  - Exit");
         System.out.println("====================================");
     }

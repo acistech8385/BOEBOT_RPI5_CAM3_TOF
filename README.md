@@ -27,7 +27,7 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 
 ```
 ====================================
- BOEBOT RPi5 Hardware Test App v2.0
+ BOEBOT RPi5 Hardware Test App v2.1
 ====================================
 1  - System info
 2  - Check I2C Servo HAT
@@ -43,6 +43,7 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 12 - ArduCam ToF capture/save CAM1
 13 - Full safe hardware test
 14 - Dual camera live view CAM0+CAM1
+15 - Calibrate wheel neutral (1500us)
 0  - Exit
 ====================================
 ```
@@ -190,6 +191,23 @@ Drive the gripper by key (no Enter needed):
 | `ESC` | Exit (gripper stays where it is) |
 
 If 8/2 feel reversed, swap `PULSE_CLOSE` and `PULSE_OPEN` in `GripperTest.java`.
+
+### Option 15 — Calibrate wheel neutral
+
+Holds **both** wheel servos at 1500 µs so you can trim each one to a true stop.
+Continuous-rotation servos rarely stop exactly at 1500 µs out of the box — they
+creep. With this running, turn the small trim potentiometer on the side of each
+servo (small hole in the case) with a fine screwdriver until that wheel stops
+completely. An already-trimmed wheel stays still, so only the wheel that still
+needs adjusting will be moving.
+
+| Key | Action |
+|-----|--------|
+| `5` | Re-send 1500 µs to both wheels |
+| `ESC` / `q` | Exit |
+
+Once both wheels stop at 1500 µs, options 4/5/6 drive correctly with no code
+changes. Lift the wheels off the ground first; Ctrl+C is safe.
 
 > Single-key control uses the Linux terminal raw mode (`stty`). Run the app in a
 > real Raspberry Pi terminal (local or SSH), not a pipe, for keys to register.
@@ -390,7 +408,9 @@ BOEBOT_RPI5_CAM3_TOF/
     ├── ToFPreviewTest.java             Option 11: ArduCam ToF live preview
     ├── ToFCaptureTest.java             Option 12: ArduCam ToF capture/save
     ├── FullHardwareTest.java           Option 13: Full safe hardware test
-    └── DualCameraViewTest.java         Option 14: Dual camera live view CAM0+CAM1
+    ├── DualCameraViewTest.java         Option 14: Dual camera live view CAM0+CAM1
+    ├── CalibrateNeutralTest.java       Option 15: Calibrate wheel neutral (1500us)
+    └── ServoSafety.java                Ctrl+C-safe servo shutdown (turns outputs off)
 ```
 
 ---
