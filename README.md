@@ -241,10 +241,22 @@ The gripper relaxing between moves is expected. Adjust `OPEN_LIMIT` /
 
 ### Option 17 — Full test: drive + dual live camera
 
-Opens the dual camera live view (Camera Module 3 RGB | ArduCam ToF depth) **and**
-runs the remote control (same keys as option 8) at the same time — drive the robot
-from the terminal while watching both cameras. Needs a display for the cameras;
-with no display the camera is skipped and you can still drive.
+One window shows both cameras (Camera Module 3 RGB | ArduCam ToF depth) **and**
+takes the driving keys, so there is no focus fight between the terminal and the
+window. Click the camera window, then drive:
+
+| Key | Action |
+|-----|--------|
+| `8` | Forward |
+| `2` | Backward |
+| `4` | Turn left |
+| `6` | Turn right |
+| `5` | Stop |
+| `Q` / `ESC` | Quit (servos stop) |
+
+**Needs a display** (HDMI/VNC/X11) — the driving keys are read by the window.
+**Calibrate the wheels first (option 4)** or an untrimmed wheel will creep even
+when stopped.
 
 > Single-key control uses the Linux terminal raw mode (`stty`). Run the app in a
 > real Raspberry Pi terminal (local or SSH), not a pipe, for keys to register.
