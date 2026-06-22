@@ -35,31 +35,41 @@ echo "[Step 1] Updating apt package lists..."
 sudo apt-get update -y -qq
 echo "  Done."
 
-# ---- Step 2: Java 17 ----
+# ---- Step 2: Java JDK (17 or newer) ----
 echo ""
-echo "[Step 2] Checking Java 17..."
+echo "[Step 2] Checking Java JDK..."
 
+# The app targets Java 17, but a newer JDK (e.g. 21 on Debian Trixie) builds it
+# fine. We need a JDK (javac), not just a JRE - Maven cannot compile on a JRE.
 JAVA_OK=false
-if command_exists java; then
-    # Extract major version from: openjdk version "17.0.x" ...
-    JAVA_VER_RAW=$(java -version 2>&1 | head -1)
-    JAVA_MAJOR=$(echo "$JAVA_VER_RAW" | grep -oP '(?<=version ")[0-9]+')
-    echo "  Found: $JAVA_VER_RAW"
-    if [ "$JAVA_MAJOR" = "17" ]; then
-        print_ok "Java 17 is already installed."
+if command_exists javac; then
+    JAVAC_VER=$(javac -version 2>&1 | head -1)
+    JAVAC_MAJOR=$(echo "$JAVAC_VER" | grep -oP '[0-9]+' | head -1)
+    echo "  Found: $JAVAC_VER"
+    if [ -n "$JAVAC_MAJOR" ] && [ "$JAVAC_MAJOR" -ge 17 ]; then
+        print_ok "JDK $JAVAC_MAJOR is available (>= 17). OK to build."
         JAVA_OK=true
     else
-        echo "  Installed Java major version is '$JAVA_MAJOR' (not 17). Will install Java 17."
+        echo "  javac major version '$JAVAC_MAJOR' is < 17. Will install a newer JDK."
     fi
 fi
 
 if [ "$JAVA_OK" = "false" ]; then
-    print_install "openjdk-17-jdk..."
-    sudo apt-get install -y openjdk-17-jdk
-    if command_exists java; then
-        print_ok "Java 17 installed: $(java -version 2>&1 | head -1)"
+    # Try 17 (Bookworm), then 21 (Trixie), then default-jdk.
+    print_install "a Java JDK (openjdk-17-jdk -> openjdk-21-jdk -> default-jdk)..."
+    if sudo apt-get install -y openjdk-17-jdk 2>/dev/null; then
+        print_ok "openjdk-17-jdk installed."
+    elif sudo apt-get install -y openjdk-21-jdk 2>/dev/null; then
+        print_ok "openjdk-21-jdk installed."
+    elif sudo apt-get install -y default-jdk 2>/dev/null; then
+        print_ok "default-jdk installed."
     else
-        print_fail "Java 17 installation may have failed. Check apt output above."
+        print_fail "Could not install a JDK. Try: sudo apt-get install -y default-jdk"
+    fi
+    if command_exists javac; then
+        print_ok "JDK ready: $(javac -version 2>&1 | head -1)"
+    else
+        print_fail "javac still not found - the build will fail without a JDK."
     fi
 fi
 
@@ -385,13 +395,46 @@ else
     fi
 fi
 
+# ---- Step 8b: Re-normalise camera overlays (MUST run after the ToF SDK install) ----
+# The ArduCam ToF installer adds its own dtoverlay=arducam-pivariety / ,cam0
+# lines which CONFLICT with imx708,cam0 and break Camera Module 3. Re-write the
+# one known-good set so both cameras work: CM3 on CAM0, ArduCam ToF on CAM1.
+echo ""
+echo "[Step 8b] Re-normalising camera overlays (CM3 -> CAM0, ToF -> CAM1)..."
+
+NORM_CONFIG=""
+if [ -f /boot/firmware/config.txt ]; then
+    NORM_CONFIG="/boot/firmware/config.txt"
+elif [ -f /boot/config.txt ]; then
+    NORM_CONFIG="/boot/config.txt"
+fi
+
+if [ -z "$NORM_CONFIG" ]; then
+    print_warn "config.txt not found - set camera overlays manually."
+else
+    # Strip every camera_auto_detect / imx708 / arducam-pivariety line we manage,
+    # then append exactly one correct set (idempotent).
+    sudo sed -i '/^camera_auto_detect=/d' "$NORM_CONFIG"
+    sudo sed -i '/^dtoverlay=imx708/d' "$NORM_CONFIG"
+    sudo sed -i '/^dtoverlay=arducam-pivariety/d' "$NORM_CONFIG"
+    {
+        echo "camera_auto_detect=0"
+        echo "dtoverlay=imx708,cam0"
+        echo "dtoverlay=arducam-pivariety,cam1"
+    } | sudo tee -a "$NORM_CONFIG" > /dev/null
+    print_ok "Camera overlays normalised in $NORM_CONFIG:"
+    grep -E "^camera_auto_detect|^dtoverlay=imx708|^dtoverlay=arducam" "$NORM_CONFIG" | sed 's/^/    /'
+    echo "  *** REBOOT REQUIRED for the cameras. ***"
+    REBOOT_NEEDED=true
+fi
+
 # ---- Summary ----
 echo ""
 echo "======================================================"
 echo "  BOEBOT Installation Summary"
 echo "======================================================"
 echo ""
-echo "  Java 17    : $(command_exists java && echo "OK - $(java -version 2>&1 | head -1)" || echo "NOT FOUND")"
+echo "  Java JDK    : $(command_exists javac && echo "OK - $(javac -version 2>&1 | head -1)" || echo "NO JDK (build will fail)")"
 echo "  Maven      : $(command_exists mvn && echo "OK" || echo "NOT FOUND")"
 echo "  i2c-tools  : $(command_exists i2cdetect && echo "OK" || echo "NOT FOUND")"
 echo "  rpicam-still: $(command_exists rpicam-still && echo "OK" || echo "not found")"
