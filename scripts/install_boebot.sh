@@ -186,6 +186,59 @@ else
     fi
 fi
 
+# ---- Step 7b: Camera overlays (Camera Module 3 on CAM0 + ArduCam ToF on CAM1) ----
+echo ""
+echo "[Step 7b] Configuring cameras (Camera Module 3 -> CAM0, ArduCam ToF -> CAM1)..."
+
+CAM_CONFIG=""
+if [ -f /boot/firmware/config.txt ]; then
+    CAM_CONFIG="/boot/firmware/config.txt"
+elif [ -f /boot/config.txt ]; then
+    CAM_CONFIG="/boot/config.txt"
+fi
+
+if [ -z "$CAM_CONFIG" ]; then
+    print_warn "Could not find config.txt. Set camera overlays manually:"
+    echo "    camera_auto_detect=0"
+    echo "    dtoverlay=imx708,cam0"
+    echo "    dtoverlay=arducam-pivariety,cam1"
+else
+    CAM_CHANGED=false
+
+    # camera_auto_detect MUST be 0 - auto-detect breaks the ArduCam ToF I2C bus.
+    if grep -q "^camera_auto_detect=1" "$CAM_CONFIG"; then
+        sudo sed -i 's/^camera_auto_detect=1/camera_auto_detect=0/' "$CAM_CONFIG"
+        echo "  Set camera_auto_detect=0"
+        CAM_CHANGED=true
+    elif ! grep -q "^camera_auto_detect=0" "$CAM_CONFIG"; then
+        echo "camera_auto_detect=0" | sudo tee -a "$CAM_CONFIG" > /dev/null
+        echo "  Added camera_auto_detect=0"
+        CAM_CHANGED=true
+    fi
+
+    # Camera Module 3 (imx708) on CAM0
+    if ! grep -q "^dtoverlay=imx708,cam0" "$CAM_CONFIG"; then
+        echo "dtoverlay=imx708,cam0" | sudo tee -a "$CAM_CONFIG" > /dev/null
+        echo "  Added dtoverlay=imx708,cam0"
+        CAM_CHANGED=true
+    fi
+
+    # ArduCam ToF on CAM1
+    if ! grep -q "^dtoverlay=arducam-pivariety,cam1" "$CAM_CONFIG"; then
+        echo "dtoverlay=arducam-pivariety,cam1" | sudo tee -a "$CAM_CONFIG" > /dev/null
+        echo "  Added dtoverlay=arducam-pivariety,cam1"
+        CAM_CHANGED=true
+    fi
+
+    if [ "$CAM_CHANGED" = "true" ]; then
+        print_ok "Camera overlays written to $CAM_CONFIG."
+        echo "  *** REBOOT REQUIRED to activate the cameras. ***"
+        REBOOT_NEEDED=true
+    else
+        print_ok "Camera overlays already set in $CAM_CONFIG."
+    fi
+fi
+
 # ---- Helper: pip install ArducamDepthCamera + dependencies ----
 pip_install_arducam() {
     echo "  Installing: ArducamDepthCamera opencv-python numpy<2.0.0 via pip3..."

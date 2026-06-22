@@ -83,7 +83,10 @@ chmod +x scripts/install_boebot.sh scripts/run_boebot_test.sh
 ### Step 3 — Run the install script
 
 The install script is **idempotent** — safe to run more than once.  
-It installs: Java 17, Maven, i2c-tools, rpicam-apps, Python3, numpy, opencv-python, ArduCam ToF SDK.
+It installs: Java 17, Maven, i2c-tools, rpicam-apps, Python3, numpy, opencv-python,
+python3-picamera2, ArduCam ToF SDK. It also **enables I2C** and **writes the dual-camera
+overlays** to `config.txt` (`camera_auto_detect=0`, `dtoverlay=imx708,cam0`,
+`dtoverlay=arducam-pivariety,cam1`) — so a fresh Pi needs no manual config.txt editing.
 
 ```bash
 ./scripts/install_boebot.sh
