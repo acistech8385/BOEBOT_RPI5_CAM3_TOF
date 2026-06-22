@@ -63,6 +63,9 @@ public class SystemInfoTest {
             logger.log("  Java Vendor    : " + javaVend);
             logger.log("  Date/Time      : " + now);
 
+            // OS distribution from /etc/os-release (e.g. Bookworm vs Trixie)
+            detectOsRelease(logger);
+
             // Disk space
             File root = new File("/");
             if (root.exists()) {
@@ -93,6 +96,45 @@ public class SystemInfoTest {
             System.out.println("[RESULT] FAIL - " + e.getMessage());
             return false;
         }
+    }
+
+    /** Reads /etc/os-release and prints PRETTY_NAME + VERSION_CODENAME. */
+    private static void detectOsRelease(AppLogger logger) {
+        File osRelease = new File("/etc/os-release");
+        if (!osRelease.exists()) {
+            System.out.println("  OS Release     : (no /etc/os-release on this OS)");
+            return;
+        }
+        String prettyName = null;
+        String codename = null;
+        try (BufferedReader reader = new BufferedReader(
+                new java.io.FileReader(osRelease))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.startsWith("PRETTY_NAME=")) {
+                    prettyName = stripQuotes(line.substring("PRETTY_NAME=".length()));
+                } else if (line.startsWith("VERSION_CODENAME=")) {
+                    codename = stripQuotes(line.substring("VERSION_CODENAME=".length()));
+                }
+            }
+        } catch (Exception e) {
+            // Not critical
+        }
+        if (prettyName == null) {
+            prettyName = "(unknown)";
+        }
+        String out = prettyName
+            + (codename != null && !codename.isEmpty() ? "  (codename: " + codename + ")" : "");
+        System.out.println("  OS Release     : " + out);
+        logger.log("  OS Release     : " + out);
+    }
+
+    private static String stripQuotes(String s) {
+        s = s.trim();
+        if (s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"")) {
+            s = s.substring(1, s.length() - 1);
+        }
+        return s;
     }
 
     private static void detectRpiModel(AppLogger logger) {
