@@ -220,18 +220,24 @@ direction (no Enter needed):
 
 ### Option 9 — MG90S gripper CH0
 
-Incremental gripper control so the servo never jams against its end stops (which
-makes the MG90S stall and can hang the board). Each press nudges the position a
-small step within a safe range (1250–1750 µs):
+Incremental gripper control. A stalled MG90S draws ~0.6–1 A and can brown out
+the board (servo freezes, SSH/RDP drops), so this test moves in small steps
+within a safe range (1350–1650 µs) **and cuts the channel's PWM after each move**
+— the servo travels, then relaxes, so it never *holds* a stall.
 
 | Key | Action |
 |-----|--------|
 | `8` | Close a step |
 | `2` | Open a step |
-| `5` | Stop / hold current position |
-| `ESC` / `q` | Exit (gripper stays where it is) |
+| `5` | Relax (cut PWM now) |
+| `ESC` / `q` | Exit |
 
-Adjust `OPEN_LIMIT` / `CLOSE_LIMIT` in `GripperTest.java` to match your gripper.
+The gripper relaxing between moves is expected. Adjust `OPEN_LIMIT` /
+`CLOSE_LIMIT` / `STEP` in `GripperTest.java` to match your gripper.
+
+> If the gripper still strains or the board browns out, the Servo HAT likely
+> needs its **own VIN power supply** (6–12 V) — a stalling MG90S can pull more
+> current than the Pi's 5 V rail alone can provide.
 
 ### Option 17 — Full test: drive + dual live camera
 

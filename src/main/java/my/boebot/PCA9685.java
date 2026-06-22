@@ -168,6 +168,25 @@ public class PCA9685 {
     }
 
     /**
+     * Cuts all PWM output on a channel by setting the LEDn full-OFF bit.
+     * The servo receives no signal, so it stops holding and draws no stall
+     * current. Used for the gripper so a position servo never sits stalled
+     * against its mechanical end stop (which can brown out the board).
+     *
+     * @param channel  servo channel to switch off
+     */
+    public void setOff(int channel) throws Exception {
+        if (channel < 0 || channel > 15) {
+            throw new IllegalArgumentException("Channel must be 0-15, got: " + channel);
+        }
+        int base = LED0_ON_L + (channel * 4);
+        writeReg(base + 0, 0x00);   // ON_L
+        writeReg(base + 1, 0x00);   // ON_H
+        writeReg(base + 2, 0x00);   // OFF_L
+        writeReg(base + 3, 0x10);   // OFF_H bit4 = full OFF (no pulse)
+    }
+
+    /**
      * Writes one byte to a PCA9685 register over I2C.
      * Format: [register_address, value]
      */

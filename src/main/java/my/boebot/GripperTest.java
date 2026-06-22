@@ -6,27 +6,34 @@ import java.util.Scanner;
 /**
  * GripperTest - Menu Option 9: interactive MG90S gripper servo on channel 0.
  *
- * Incremental control so the gripper never slams into its mechanical end stops
- * (which makes the MG90S stall, draw heavy current and can hang the board).
- * Each press nudges the position by a small step within a safe range:
+ * The MG90S is a position servo. If it is commanded past its mechanical travel
+ * it stalls and draws ~0.6-1 A continuously, which can brown out the board
+ * (servo freezes, SSH/RDP drops). To avoid that this test:
  *
- *   8   = close a step   (toward CLOSE_LIMIT)
- *   2   = open a step     (toward OPEN_LIMIT)
- *   5   = stop (hold current position)
- *   ESC / q = exit (gripper stays where it is)
+ *   - keeps the position inside a safe range (OPEN_LIMIT..CLOSE_LIMIT),
+ *   - moves in steps, and
+ *   - cuts the channel's PWM after each move, so the servo never *holds* a
+ *     stall. The gripper relaxes between moves (this is expected).
  *
- * The position is clamped to OPEN_LIMIT..CLOSE_LIMIT, which are kept away from
- * the 1100/1900 extremes so the servo is never forced past its travel. Widen or
- * narrow these limits to match your gripper.
+ * Keys (no Enter needed):
+ *   8   = close a step
+ *   2   = open a step
+ *   5   = relax (cut PWM now)
+ *   ESC / q = exit
+ *
+ * If the gripper still strains at a limit, narrow OPEN_LIMIT / CLOSE_LIMIT.
+ * Also make sure the Servo HAT has its own VIN power - a stalling MG90S can
+ * pull more current than the Pi's 5V rail alone can supply.
  */
 public class GripperTest {
 
     private static final int GRIPPER_CH  = 0;
 
-    private static final int OPEN_LIMIT  = 1250;  // most-open (safe, not max)
-    private static final int CLOSE_LIMIT = 1750;  // most-closed (safe, not max)
+    private static final int OPEN_LIMIT  = 1350;  // most-open (safe)
+    private static final int CLOSE_LIMIT = 1650;  // most-closed (safe)
     private static final int CENTER      = 1500;
-    private static final int STEP        = 40;    // us per key press
+    private static final int STEP        = 60;    // us per key press (visible)
+    private static final int TRAVEL_MS   = 250;   // time to let the servo move
 
     public static boolean run(AppLogger logger, BotConfig config,
                                Context pi4j, Scanner scanner) {
@@ -38,9 +45,9 @@ public class GripperTest {
         System.out.println("  Servo type        : MG90S position servo");
         System.out.println();
         System.out.println("  Controls:  8 = close step   2 = open step");
-        System.out.println("             5 = stop         ESC / q = exit");
-        System.out.println("  Range is limited to " + OPEN_LIMIT + ".." + CLOSE_LIMIT
-            + " us so the gripper never jams.");
+        System.out.println("             5 = relax        ESC / q = exit");
+        System.out.println("  Range " + OPEN_LIMIT + ".." + CLOSE_LIMIT
+            + " us; output is cut after each move so it never stalls.");
 
         logger.logSeparator();
         logger.log("TEST 9: MG90S Gripper (interactive) - Servo HAT channel " + GRIPPER_CH);
@@ -57,13 +64,14 @@ public class GripperTest {
             pca = new PCA9685(pi4j, config.getI2cBus(), config.getI2cAddress());
             pca.initialize(config.getPwmFrequency());
 
-            int pos = CENTER;
-            pca.setServoPulse(GRIPPER_CH, pos);
-
             stopHook = ServoSafety.installStopHook(config.getI2cBus(), config.getI2cAddress());
 
+            int pos = CENTER;
+            // Brief move to centre, then relax (no holding current).
+            nudge(pca, GRIPPER_CH, pos);
+
             System.out.println();
-            System.out.println("  Centered (" + CENTER + " us). Press 8 / 2 / 5, or ESC (or q) to exit...");
+            System.out.println("  Centred. Press 8 / 2 / 5, or ESC (or q) to exit...");
             System.out.println("  (If a single key does nothing, press Enter after it.)");
             System.out.println();
 
@@ -74,25 +82,26 @@ public class GripperTest {
                 switch (key) {
                     case '8' -> {
                         pos = Math.min(pos + STEP, CLOSE_LIMIT);
-                        pca.setServoPulse(GRIPPER_CH, pos);
+                        nudge(pca, GRIPPER_CH, pos);
                         System.out.println("  [8] CLOSE step -> " + pos + " us"
                             + (pos == CLOSE_LIMIT ? "  (close limit)" : ""));
                         logger.log("  CH0 -> " + pos + " us (close step)");
                     }
                     case '2' -> {
                         pos = Math.max(pos - STEP, OPEN_LIMIT);
-                        pca.setServoPulse(GRIPPER_CH, pos);
+                        nudge(pca, GRIPPER_CH, pos);
                         System.out.println("  [2] OPEN step -> " + pos + " us"
                             + (pos == OPEN_LIMIT ? "  (open limit)" : ""));
                         logger.log("  CH0 -> " + pos + " us (open step)");
                     }
                     case '5' -> {
-                        pca.setServoPulse(GRIPPER_CH, pos);
-                        System.out.println("  [5] STOP (hold at " + pos + " us)");
-                        logger.log("  CH0 hold at " + pos + " us (stop)");
+                        pca.setOff(GRIPPER_CH);
+                        System.out.println("  [5] RELAX (output off at " + pos + " us)");
+                        logger.log("  CH0 relaxed (output off)");
                     }
                     case 27, 'q', 'Q', -1 -> {
-                        System.out.println("  [exit] Ending gripper test. Held at " + pos + " us.");
+                        pca.setOff(GRIPPER_CH);
+                        System.out.println("  [exit] Ending gripper test (relaxed).");
                         exit = true;
                     }
                     default -> { /* ignore other keys */ }
@@ -113,9 +122,17 @@ public class GripperTest {
 
         } finally {
             if (pca != null) {
+                try { pca.setOff(GRIPPER_CH); } catch (Exception ignore) {}
                 pca.close();
             }
             ServoSafety.removeStopHook(stopHook);
         }
+    }
+
+    /** Drive the servo toward a pulse, give it time to travel, then cut output. */
+    private static void nudge(PCA9685 pca, int channel, int pulseUs) throws Exception {
+        pca.setServoPulse(channel, pulseUs);
+        Thread.sleep(TRAVEL_MS);
+        pca.setOff(channel);
     }
 }
