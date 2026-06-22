@@ -16,17 +16,18 @@ import java.util.Scanner;
  *   3  - Test PCA9685 Servo HAT
  *   4  - Calibrate wheel neutral (hold 1500 us)
  *   5  - Right wheel CH14 (incremental)
- *   6  - Both wheels auto sequence
- *   7  - Drive control (8/2/4/6, 5 stop)
- *   8  - Left wheel CH15 (incremental)
+ *   6  - Left wheel CH15 (incremental)
+ *   7  - Both wheels auto sequence
+ *   8  - Remote control (8 fwd 2 back 4 left 6 right 5 stop)
  *   9  - MG90S gripper CH0
- *   10 - Camera Module 3 still capture CAM0
- *   11 - Camera Module 3 live preview CAM0
- *   12 - ArduCam ToF SDK detection CAM1
- *   13 - Dual camera live view (CAM0 RGB + CAM1 ToF)
- *   14 - ArduCam ToF live preview CAM1
- *   15 - ArduCam ToF capture/save CAM1
- *   16 - Full test: drive + dual live camera
+ *   10 - Camera Module 3 detection CAM0
+ *   11 - Camera Module 3 still capture CAM0
+ *   12 - Camera Module 3 live preview CAM0
+ *   13 - ArduCam ToF SDK detection CAM1
+ *   14 - ArduCam ToF capture/save CAM1
+ *   15 - ArduCam ToF live preview CAM1
+ *   16 - Dual camera live view (CAM0 RGB + CAM1 ToF)
+ *   17 - Full test: drive + dual live camera
  *   0  - Exit
  */
 public class Main {
@@ -75,17 +76,18 @@ public class Main {
                 case "3"  -> PCA9685InitTest.run(logger, config, pi4j);
                 case "4"  -> CalibrateNeutralTest.run(logger, config, pi4j, scanner);
                 case "5"  -> RightWheelTest.run(logger, config, pi4j, scanner);
-                case "6"  -> BothWheelsTest.run(logger, config, pi4j, scanner);
-                case "7"  -> DriveControlTest.run(logger, config, pi4j, scanner);
-                case "8"  -> LeftWheelTest.run(logger, config, pi4j, scanner);
+                case "6"  -> LeftWheelTest.run(logger, config, pi4j, scanner);
+                case "7"  -> BothWheelsTest.run(logger, config, pi4j, scanner);
+                case "8"  -> DriveControlTest.run(logger, config, pi4j, scanner);
                 case "9"  -> GripperTest.run(logger, config, pi4j, scanner);
-                case "10" -> CameraModule3Test.run(logger, config);
-                case "11" -> CameraModule3PreviewTest.run(logger, config);
-                case "12" -> ToFCameraTest.run(logger, config);
-                case "13" -> DualCameraViewTest.run(logger, config);
-                case "14" -> ToFPreviewTest.run(logger, config);
-                case "15" -> ToFCaptureTest.run(logger, config);
-                case "16" -> FullDriveCameraTest.run(logger, config, pi4j, scanner);
+                case "10" -> CameraModule3DetectTest.run(logger, config);
+                case "11" -> CameraModule3Test.run(logger, config);
+                case "12" -> CameraModule3PreviewTest.run(logger, config);
+                case "13" -> ToFCameraTest.run(logger, config);
+                case "14" -> ToFCaptureTest.run(logger, config);
+                case "15" -> ToFPreviewTest.run(logger, config);
+                case "16" -> DualCameraViewTest.run(logger, config);
+                case "17" -> FullDriveCameraTest.run(logger, config, pi4j, scanner);
                 case "0"  -> {
                     System.out.println();
                     System.out.println("Exiting BOEBOT Hardware Test App.");
@@ -94,7 +96,7 @@ public class Main {
                 }
                 default -> {
                     System.out.println("Invalid choice: \"" + input + "\"");
-                    System.out.println("Please enter a number from the menu (0-16).");
+                    System.out.println("Please enter a number from the menu (0-17).");
                 }
             }
 
@@ -118,24 +120,25 @@ public class Main {
     private static void printMenu() {
         System.out.println();
         System.out.println("====================================");
-        System.out.println(" BOEBOT RPi5 Hardware Test App v2.2");
+        System.out.println(" BOEBOT RPi5 Hardware Test App v2.3");
         System.out.println("====================================");
         System.out.println("1  - System info");
         System.out.println("2  - Check I2C Servo HAT");
         System.out.println("3  - Test PCA9685 Servo HAT");
         System.out.println("4  - Calibrate wheel neutral (1500us)");
         System.out.println("5  - Right wheel CH14  (8=fwd+ 2=rev+ 5=stop ESC)");
-        System.out.println("6  - Both wheels auto sequence");
-        System.out.println("7  - Drive control    (8 fwd 2 back 4 left 6 right 5 stop)");
-        System.out.println("8  - Left wheel CH15   (8=fwd+ 2=rev+ 5=stop ESC)");
+        System.out.println("6  - Left wheel CH15   (8=fwd+ 2=rev+ 5=stop ESC)");
+        System.out.println("7  - Both wheels auto sequence (fwd rev TurnR TurnL)");
+        System.out.println("8  - Remote control    (8 fwd 2 back 4 left 6 right 5 stop)");
         System.out.println("9  - Gripper CH0       (8=close 2=open 5=stop ESC)");
-        System.out.println("10 - Camera Module 3 still capture CAM0");
-        System.out.println("11 - Camera Module 3 live preview CAM0");
-        System.out.println("12 - ArduCam ToF SDK detection CAM1");
-        System.out.println("13 - Dual camera live view CAM0+CAM1");
-        System.out.println("14 - ArduCam ToF live preview CAM1");
-        System.out.println("15 - ArduCam ToF capture/save CAM1");
-        System.out.println("16 - Full test: drive + dual live camera");
+        System.out.println("10 - Camera Module 3 detection CAM0");
+        System.out.println("11 - Camera Module 3 still capture CAM0");
+        System.out.println("12 - Camera Module 3 live preview CAM0");
+        System.out.println("13 - ArduCam ToF SDK detection CAM1");
+        System.out.println("14 - ArduCam ToF capture/save CAM1");
+        System.out.println("15 - ArduCam ToF live preview CAM1");
+        System.out.println("16 - Dual camera live view CAM0+CAM1");
+        System.out.println("17 - Full test: drive + dual live camera");
         System.out.println("0  - Exit");
         System.out.println("====================================");
     }

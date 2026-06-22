@@ -4,27 +4,29 @@ import com.pi4j.context.Context;
 import java.util.Scanner;
 
 /**
- * GripperTest - Menu Option 9: interactive MG90S gripper servo on Servo HAT channel 0.
+ * GripperTest - Menu Option 9: interactive MG90S gripper servo on channel 0.
  *
- * The MG90S is a POSITION servo. Key controls (no Enter needed):
- *   8   = close gripper
- *   2   = open gripper
+ * Incremental control so the gripper never slams into its mechanical end stops
+ * (which makes the MG90S stall, draw heavy current and can hang the board).
+ * Each press nudges the position by a small step within a safe range:
+ *
+ *   8   = close a step   (toward CLOSE_LIMIT)
+ *   2   = open a step     (toward OPEN_LIMIT)
  *   5   = stop (hold current position)
- *   ESC = exit the test (gripper stays where it is)
+ *   ESC / q = exit (gripper stays where it is)
  *
- * Pulse values: 1100..1900 us. CLOSE = 1900, OPEN = 1100, CENTER = 1500.
- * If 8/2 feel reversed, swap PULSE_CLOSE and PULSE_OPEN.
- *
- * WARNING: Do NOT force the gripper past its mechanical end stops -
- *          this damages the servo gears.
+ * The position is clamped to OPEN_LIMIT..CLOSE_LIMIT, which are kept away from
+ * the 1100/1900 extremes so the servo is never forced past its travel. Widen or
+ * narrow these limits to match your gripper.
  */
 public class GripperTest {
 
     private static final int GRIPPER_CH  = 0;
 
-    private static final int PULSE_OPEN   = 1100;  // Gripper open
-    private static final int PULSE_CENTER = 1500;  // Center / neutral
-    private static final int PULSE_CLOSE  = 1900;  // Gripper closed
+    private static final int OPEN_LIMIT  = 1250;  // most-open (safe, not max)
+    private static final int CLOSE_LIMIT = 1750;  // most-closed (safe, not max)
+    private static final int CENTER      = 1500;
+    private static final int STEP        = 40;    // us per key press
 
     public static boolean run(AppLogger logger, BotConfig config,
                                Context pi4j, Scanner scanner) {
@@ -35,8 +37,10 @@ public class GripperTest {
         System.out.println("  Servo HAT channel : " + GRIPPER_CH);
         System.out.println("  Servo type        : MG90S position servo");
         System.out.println();
-        System.out.println("  Controls:  8 = close   2 = open   5 = stop   ESC = exit");
-        System.out.println("  WARNING: do NOT force the gripper past its end stops.");
+        System.out.println("  Controls:  8 = close step   2 = open step");
+        System.out.println("             5 = stop         ESC / q = exit");
+        System.out.println("  Range is limited to " + OPEN_LIMIT + ".." + CLOSE_LIMIT
+            + " us so the gripper never jams.");
 
         logger.logSeparator();
         logger.log("TEST 9: MG90S Gripper (interactive) - Servo HAT channel " + GRIPPER_CH);
@@ -53,14 +57,13 @@ public class GripperTest {
             pca = new PCA9685(pi4j, config.getI2cBus(), config.getI2cAddress());
             pca.initialize(config.getPwmFrequency());
 
-            int currentPulse = PULSE_CENTER;
-            pca.setServoPulse(GRIPPER_CH, currentPulse);
+            int pos = CENTER;
+            pca.setServoPulse(GRIPPER_CH, pos);
 
-            // Safety: cut servo output even if the user presses Ctrl+C.
             stopHook = ServoSafety.installStopHook(config.getI2cBus(), config.getI2cAddress());
 
             System.out.println();
-            System.out.println("  Centered (1500 us). Press 8 / 2 / 5, or ESC (or q) to exit...");
+            System.out.println("  Centered (" + CENTER + " us). Press 8 / 2 / 5, or ESC (or q) to exit...");
             System.out.println("  (If a single key does nothing, press Enter after it.)");
             System.out.println();
 
@@ -70,24 +73,26 @@ public class GripperTest {
                 int key = RawKey.readKey();
                 switch (key) {
                     case '8' -> {
-                        currentPulse = PULSE_CLOSE;
-                        pca.setServoPulse(GRIPPER_CH, currentPulse);
-                        System.out.println("  [8] CLOSE (CH0 -> 1900 us)");
-                        logger.log("  CH0 -> 1900 us (close)");
+                        pos = Math.min(pos + STEP, CLOSE_LIMIT);
+                        pca.setServoPulse(GRIPPER_CH, pos);
+                        System.out.println("  [8] CLOSE step -> " + pos + " us"
+                            + (pos == CLOSE_LIMIT ? "  (close limit)" : ""));
+                        logger.log("  CH0 -> " + pos + " us (close step)");
                     }
                     case '2' -> {
-                        currentPulse = PULSE_OPEN;
-                        pca.setServoPulse(GRIPPER_CH, currentPulse);
-                        System.out.println("  [2] OPEN  (CH0 -> 1100 us)");
-                        logger.log("  CH0 -> 1100 us (open)");
+                        pos = Math.max(pos - STEP, OPEN_LIMIT);
+                        pca.setServoPulse(GRIPPER_CH, pos);
+                        System.out.println("  [2] OPEN step -> " + pos + " us"
+                            + (pos == OPEN_LIMIT ? "  (open limit)" : ""));
+                        logger.log("  CH0 -> " + pos + " us (open step)");
                     }
                     case '5' -> {
-                        pca.setServoPulse(GRIPPER_CH, currentPulse);
-                        System.out.println("  [5] STOP  (hold at " + currentPulse + " us)");
-                        logger.log("  CH0 hold at " + currentPulse + " us (stop)");
+                        pca.setServoPulse(GRIPPER_CH, pos);
+                        System.out.println("  [5] STOP (hold at " + pos + " us)");
+                        logger.log("  CH0 hold at " + pos + " us (stop)");
                     }
                     case 27, 'q', 'Q', -1 -> {
-                        System.out.println("  [exit] Ending gripper test. Held at " + currentPulse + " us.");
+                        System.out.println("  [exit] Ending gripper test. Held at " + pos + " us.");
                         exit = true;
                     }
                     default -> { /* ignore other keys */ }

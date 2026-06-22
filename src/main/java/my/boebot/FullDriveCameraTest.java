@@ -4,11 +4,11 @@ import com.pi4j.context.Context;
 import java.util.Scanner;
 
 /**
- * FullDriveCameraTest - Menu Option 16: drive the robot while watching both
+ * FullDriveCameraTest - Menu Option 17: drive the robot while watching both
  * cameras live.
  *
  * Launches the dual camera live view (Camera Module 3 RGB + ArduCam ToF depth)
- * in a window, then runs the same drive control as option 7 in the terminal:
+ * in a window, then runs the same remote control as option 8 in the terminal:
  *   8 = forward, 2 = backward, 4 = turn left, 6 = turn right, 5 = stop,
  *   ESC / q = exit.
  *
@@ -22,14 +22,14 @@ public class FullDriveCameraTest {
                                Context pi4j, Scanner scanner) {
         System.out.println();
         System.out.println("============================================");
-        System.out.println("  Test 16: Full Test - Drive + Dual Live Camera");
+        System.out.println("  Test 17: Full Test - Drive + Dual Live Camera");
         System.out.println("============================================");
         System.out.println("  Left  view : Camera Module 3 RGB  (CAM0)");
         System.out.println("  Right view : ArduCam ToF depth     (CAM1)");
         System.out.println("  Drive: 8 fwd  2 back  4 left  6 right  5 stop  ESC/q exit");
 
         logger.logSeparator();
-        logger.log("TEST 16: Full Test - Drive + Dual Live Camera");
+        logger.log("TEST 17: Full Test - Drive + Dual Live Camera");
 
         if (pi4j == null) {
             System.out.println("[RESULT] FAIL - Pi4J context not available.");

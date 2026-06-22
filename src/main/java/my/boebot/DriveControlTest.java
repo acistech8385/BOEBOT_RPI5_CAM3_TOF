@@ -4,7 +4,7 @@ import com.pi4j.context.Context;
 import java.util.Scanner;
 
 /**
- * DriveControlTest - Menu Option 7: drive the robot with both wheels.
+ * DriveControlTest - Menu Option 8: remote control the robot with both wheels.
  *
  * Continuous control (no Enter needed):
  *   8   = forward       (both wheels forward)
@@ -33,7 +33,7 @@ public class DriveControlTest {
                                Context pi4j, Scanner scanner) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 7: Drive Control");
+        System.out.println("  Test 8: Remote Control");
         System.out.println("====================================");
         System.out.println("  Right wheel : Servo HAT channel " + RIGHT_CH);
         System.out.println("  Left wheel  : Servo HAT channel " + LEFT_CH);
@@ -44,7 +44,7 @@ public class DriveControlTest {
         System.out.println("  Reminder: lift the wheels off the ground first.");
 
         logger.logSeparator();
-        logger.log("TEST 7: Drive Control - CH14 + CH15");
+        logger.log("TEST 8: Remote Control - CH14 + CH15");
 
         if (pi4j == null) {
             System.out.println("[RESULT] FAIL - Pi4J context not available.");

@@ -29,13 +29,13 @@ public class ToFCameraTest {
     public static boolean run(AppLogger logger, BotConfig config) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 12: ArduCam ToF SDK Detection CAM1");
+        System.out.println("  Test 13: ArduCam ToF SDK Detection CAM1");
         System.out.println("====================================");
         System.out.println("  Camera port : CAM/DISP 1");
         System.out.println("  Type        : SDK detection and readiness check");
 
         logger.logSeparator();
-        logger.log("TEST 12: ArduCam ToF SDK Detection - CAM/DISP 1");
+        logger.log("TEST 13: ArduCam ToF SDK Detection - CAM/DISP 1");
 
         // ---- Step 1: SDK folder ----
         System.out.println();

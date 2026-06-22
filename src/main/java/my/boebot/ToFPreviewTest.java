@@ -92,6 +92,8 @@ public class ToFPreviewTest {
             except Exception:
                 log("Camera started. Range: " + str(r) + "mm")
 
+            WINDOW = "ArduCam ToF -- Depth (colour) | Confidence (grey)"
+            cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
             log("Close the window or press Q / ESC to stop.")
             frames = 0
 
@@ -111,11 +113,18 @@ public class ToFPreviewTest {
                     conf_bgr = cv2.cvtColor(conf_norm, cv2.COLOR_GRAY2BGR)
 
                     combo = cv2.hconcat([result, conf_bgr])
-                    cv2.imshow("ArduCam ToF -- Depth (colour) | Confidence (grey)", combo)
+                    cv2.imshow(WINDOW, combo)
 
-                k = cv2.waitKey(1) & 0xFF
+                # waitKey(30) gives the GUI time to deliver key + window events.
+                k = cv2.waitKey(30) & 0xFF
                 if k in (ord("q"), ord("Q"), 27):
                     break
+                # Also stop if the window was closed with the X button.
+                try:
+                    if cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
+                        break
+                except cv2.error:
+                    pass
 
             cam.stop()
             cam.close()
@@ -126,13 +135,13 @@ public class ToFPreviewTest {
     public static boolean run(AppLogger logger, BotConfig config) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 14: ArduCam ToF Live Preview CAM1");
+        System.out.println("  Test 15: ArduCam ToF Live Preview CAM1");
         System.out.println("====================================");
         System.out.println("  Camera port : CAM/DISP 1");
         System.out.println("  Type        : Live depth + confidence preview window");
 
         logger.logSeparator();
-        logger.log("TEST 14: ArduCam ToF Live Preview - CAM/DISP 1");
+        logger.log("TEST 15: ArduCam ToF Live Preview - CAM/DISP 1");
 
         // ---- Check display ----
         String displayEnv  = System.getenv("DISPLAY");

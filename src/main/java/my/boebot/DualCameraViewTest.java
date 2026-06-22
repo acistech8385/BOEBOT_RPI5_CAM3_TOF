@@ -6,7 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * DualCameraViewTest - Menu Option 14: live view of BOTH cameras at once.
+ * DualCameraViewTest - Menu Option 16: live view of BOTH cameras at once.
  *
  * Shows, side by side in one OpenCV window:
  *   - Left  : Camera Module 3 RGB feed   (CAM0, imx708, via picamera2)
@@ -61,16 +61,24 @@ public class DualCameraViewTest {
             except ImportError as e:
                 fail("ArducamDepthCamera not importable: " + str(e))
 
-            VIEW_W, VIEW_H = 480, 360
+            VIEW_W, VIEW_H = 640, 480          # display panel size
+            CAP_W, CAP_H   = 1280, 720         # RGB capture size (downscaled = sharp)
 
             # -- Open Camera Module 3 (RGB) on CAM0 --
             log("Opening Camera Module 3 (RGB, CAM0)...")
             try:
                 picam2 = Picamera2(0)
                 cfg = picam2.create_video_configuration(
-                    main={"size": (VIEW_W, VIEW_H), "format": "RGB888"})
+                    main={"size": (CAP_W, CAP_H), "format": "RGB888"})
                 picam2.configure(cfg)
                 picam2.start()
+                # Continuous autofocus so the RGB feed is sharp (matches
+                # rpicam-hello). Without this the lens sits at a fixed, blurry
+                # position. Ignored gracefully on fixed-focus modules.
+                try:
+                    picam2.set_controls({"AfMode": 2, "AfTrigger": 0})
+                except Exception:
+                    pass
             except Exception as e:
                 fail("Camera Module 3 open failed: " + str(e))
 
@@ -101,6 +109,8 @@ public class DualCameraViewTest {
                 pass
             r = MAX_DISTANCE
 
+            WINDOW = "BOEBOT Dual View -- RGB (CAM0) | Depth (CAM1)"
+            cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
             log("Both cameras running. Press Q / ESC in the window to stop.")
             frames = 0
             depth_vis = np.zeros((VIEW_H, VIEW_W, 3), dtype="uint8")
@@ -109,9 +119,9 @@ public class DualCameraViewTest {
                 # -- RGB frame from Camera Module 3 --
                 # picamera2 "RGB888" already returns BGR byte order, which is
                 # what OpenCV imshow expects -- do NOT cvtColor or skin goes blue.
+                # Capture is CAP_W x CAP_H; downscale to the panel for sharpness.
                 rgb = picam2.capture_array()
-                if rgb.shape[1] != VIEW_W or rgb.shape[0] != VIEW_H:
-                    rgb = cv2.resize(rgb, (VIEW_W, VIEW_H))
+                rgb = cv2.resize(rgb, (VIEW_W, VIEW_H), interpolation=cv2.INTER_AREA)
 
                 # -- Depth frame from ToF --
                 frame = cam.requestFrame(200)
@@ -134,12 +144,17 @@ public class DualCameraViewTest {
                             cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 255), 2)
 
                 combo = cv2.hconcat([left, right])
-                cv2.imshow("BOEBOT Dual View -- RGB (CAM0) | Depth (CAM1)", combo)
+                cv2.imshow(WINDOW, combo)
                 frames += 1
 
-                k = cv2.waitKey(1) & 0xFF
+                k = cv2.waitKey(30) & 0xFF
                 if k in (ord("q"), ord("Q"), 27):
                     break
+                try:
+                    if cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
+                        break
+                except cv2.error:
+                    pass
 
             cam.stop()
             cam.close()
@@ -151,7 +166,7 @@ public class DualCameraViewTest {
     /**
      * Write the dual-view script to a temp file and start it as a background
      * python3 process (no wait). Returns the Process, or null on failure.
-     * Used by the full test (option 16) to show both cameras while driving.
+     * Used by the full test (option 17) to show both cameras while driving.
      */
     public static Process launchBackground() {
         try {
@@ -182,14 +197,14 @@ public class DualCameraViewTest {
     public static boolean run(AppLogger logger, BotConfig config) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 13: Dual Camera Live View");
+        System.out.println("  Test 16: Dual Camera Live View");
         System.out.println("====================================");
         System.out.println("  Left  : Camera Module 3 RGB  (CAM0)");
         System.out.println("  Right : ArduCam ToF depth     (CAM1)");
         System.out.println("  Type  : Both cameras in one window");
 
         logger.logSeparator();
-        logger.log("TEST 14: Dual Camera Live View - CAM0 (RGB) + CAM1 (ToF)");
+        logger.log("TEST 16: Dual Camera Live View - CAM0 (RGB) + CAM1 (ToF)");
 
         // ---- Check display ----
         String displayEnv = System.getenv("DISPLAY");

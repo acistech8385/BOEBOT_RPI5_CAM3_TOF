@@ -142,14 +142,14 @@ public class ToFCaptureTest {
     public static boolean run(AppLogger logger, BotConfig config) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 15: ArduCam ToF Capture/Save CAM1");
+        System.out.println("  Test 14: ArduCam ToF Capture/Save CAM1");
         System.out.println("====================================");
         System.out.println("  Camera port : CAM/DISP 1");
         System.out.println("  Type        : Single frame capture, save to logs/");
         System.out.println("  Display     : NOT required (no GUI window)");
 
         logger.logSeparator();
-        logger.log("TEST 15: ArduCam ToF Capture/Save - CAM/DISP 1");
+        logger.log("TEST 14: ArduCam ToF Capture/Save - CAM/DISP 1");
 
         // ---- Prepare output directory ----
         String timestamp = LocalDateTime.now()

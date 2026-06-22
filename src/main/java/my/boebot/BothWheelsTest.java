@@ -4,7 +4,7 @@ import com.pi4j.context.Context;
 import java.util.Scanner;
 
 /**
- * BothWheelsTest - Menu Option 6: automated movement sequence for both wheels.
+ * BothWheelsTest - Menu Option 7: automated movement sequence for both wheels.
  *
  * Right wheel = Servo HAT channel 14, Left wheel = Servo HAT channel 15
  * (Parallax continuous rotation servos).
@@ -44,7 +44,7 @@ public class BothWheelsTest {
                                Context pi4j, Scanner scanner) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 6: Both Wheel Servos (auto sequence)");
+        System.out.println("  Test 7: Both Wheel Servos (auto sequence)");
         System.out.println("====================================");
         System.out.println("  Right wheel : Servo HAT channel " + RIGHT_CH);
         System.out.println("  Left wheel  : Servo HAT channel " + LEFT_CH);
@@ -53,7 +53,7 @@ public class BothWheelsTest {
         System.out.println("  Reminder: lift the wheels off the ground before this runs.");
 
         logger.logSeparator();
-        logger.log("TEST 6: Both Wheel Servos (auto sequence)");
+        logger.log("TEST 7: Both Wheel Servos (auto sequence)");
 
         if (pi4j == null) {
             System.out.println("[RESULT] FAIL - Pi4J context not available.");

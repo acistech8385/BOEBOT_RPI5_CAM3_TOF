@@ -26,13 +26,13 @@ public class CameraModule3Test {
     public static boolean run(AppLogger logger, BotConfig config) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 10: Camera Module 3 Still Capture CAM0");
+        System.out.println("  Test 11: Camera Module 3 Still Capture CAM0");
         System.out.println("====================================");
         System.out.println("  Camera port : CAM/DISP 0");
         System.out.println("  Type        : Still capture (jpg)");
 
         logger.logSeparator();
-        logger.log("TEST 10: Camera Module 3 Still Capture - CAM/DISP 0");
+        logger.log("TEST 11: Camera Module 3 Still Capture - CAM/DISP 0");
 
         String cameraCmd = findCameraCommand(STILL_COMMANDS);
 

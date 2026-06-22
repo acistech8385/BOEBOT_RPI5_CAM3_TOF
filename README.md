@@ -27,24 +27,25 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 
 ```
 ====================================
- BOEBOT RPi5 Hardware Test App v2.2
+ BOEBOT RPi5 Hardware Test App v2.3
 ====================================
 1  - System info
 2  - Check I2C Servo HAT
 3  - Test PCA9685 Servo HAT
 4  - Calibrate wheel neutral (1500us)
 5  - Right wheel CH14  (8=fwd+ 2=rev+ 5=stop ESC)
-6  - Both wheels auto sequence
-7  - Drive control    (8 fwd 2 back 4 left 6 right 5 stop)
-8  - Left wheel CH15   (8=fwd+ 2=rev+ 5=stop ESC)
+6  - Left wheel CH15   (8=fwd+ 2=rev+ 5=stop ESC)
+7  - Both wheels auto sequence (fwd rev TurnR TurnL)
+8  - Remote control    (8 fwd 2 back 4 left 6 right 5 stop)
 9  - Gripper CH0       (8=close 2=open 5=stop ESC)
-10 - Camera Module 3 still capture CAM0
-11 - Camera Module 3 live preview CAM0
-12 - ArduCam ToF SDK detection CAM1
-13 - Dual camera live view CAM0+CAM1
-14 - ArduCam ToF live preview CAM1
-15 - ArduCam ToF capture/save CAM1
-16 - Full test: drive + dual live camera
+10 - Camera Module 3 detection CAM0
+11 - Camera Module 3 still capture CAM0
+12 - Camera Module 3 live preview CAM0
+13 - ArduCam ToF SDK detection CAM1
+14 - ArduCam ToF capture/save CAM1
+15 - ArduCam ToF live preview CAM1
+16 - Dual camera live view CAM0+CAM1
+17 - Full test: drive + dual live camera
 0  - Exit
 ====================================
 ```
@@ -56,16 +57,22 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 Do all of these steps in the **Raspberry Pi terminal** (SSH or local).  
 Do **not** run these on Windows.
 
-### Step 1 — Create a project folder and clone the repo
+### Step 1 — Clone the repo (single-level folder)
 
 ```bash
-mkdir -p ~/BOEBOT_RPI5_CAM3_TOF
-cd ~/BOEBOT_RPI5_CAM3_TOF
+cd ~
 git clone -b master https://github.com/acistech8385/BOEBOT_RPI5_CAM3_TOF.git
 cd BOEBOT_RPI5_CAM3_TOF
 ```
 
-Your project path will be: `~/BOEBOT_RPI5_CAM3_TOF/BOEBOT_RPI5_CAM3_TOF`
+Your project path will be: `~/BOEBOT_RPI5_CAM3_TOF` (one level, not nested).
+
+> Already cloned into the old nested path `~/BOEBOT_RPI5_CAM3_TOF/BOEBOT_RPI5_CAM3_TOF`?
+> Move it up one level:
+> ```bash
+> mv ~/BOEBOT_RPI5_CAM3_TOF ~/BOEBOT_tmp && mv ~/BOEBOT_tmp/BOEBOT_RPI5_CAM3_TOF ~/BOEBOT_RPI5_CAM3_TOF && rm -rf ~/BOEBOT_tmp
+> ```
+> Then use `cd ~/BOEBOT_RPI5_CAM3_TOF` from now on.
 
 ### Step 2 — Make scripts executable
 
@@ -93,7 +100,7 @@ sudo reboot
 After reboot, re-open a terminal and go back to the project:
 
 ```bash
-cd ~/BOEBOT_RPI5_CAM3_TOF/BOEBOT_RPI5_CAM3_TOF
+cd ~/BOEBOT_RPI5_CAM3_TOF
 ```
 
 ### Step 5 — Verify I2C sees the PCA9685 Servo HAT
@@ -132,7 +139,7 @@ The script builds the app with Maven (first run downloads dependencies) and laun
 When code is updated on GitHub:
 
 ```bash
-cd ~/BOEBOT_RPI5_CAM3_TOF/BOEBOT_RPI5_CAM3_TOF
+cd ~/BOEBOT_RPI5_CAM3_TOF
 git pull
 ./scripts/run_boebot_test.sh
 ```
@@ -174,7 +181,7 @@ needs adjusting will be moving.
 **Do this first.** Once both wheels stop at 1500 µs, options 5/6/7/8 drive
 correctly with no code changes.
 
-### Option 5 — Right wheel CH14 / Option 8 — Left wheel CH15 (incremental)
+### Option 5 — Right wheel CH14 / Option 6 — Left wheel CH15 (incremental)
 
 Drive one continuous-rotation wheel with **incremental speed** (no Enter needed):
 
@@ -188,7 +195,7 @@ Drive one continuous-rotation wheel with **incremental speed** (no Enter needed)
 Speed steps from level 0 (stop) to ±5 (~full speed). Left and right servos face
 opposite ways, so each side has its own forward direction (handled in code).
 
-### Option 6 — Both wheels, automatic sequence
+### Option 7 — Both wheels, automatic sequence
 
 Runs this sequence with both wheels, then stops:
 
@@ -197,7 +204,7 @@ Runs this sequence with both wheels, then stops:
 3. Turn right 2 s (right wheel back, left wheel forward) → pause 1 s
 4. Turn left 2 s (right wheel forward, left wheel back) → pause 1 s → stop
 
-### Option 7 — Drive control
+### Option 8 — Remote control
 
 Drive the whole robot. The robot keeps moving until you press `5` or another
 direction (no Enter needed):
@@ -213,21 +220,23 @@ direction (no Enter needed):
 
 ### Option 9 — MG90S gripper CH0
 
-Drive the gripper by key (no Enter needed):
+Incremental gripper control so the servo never jams against its end stops (which
+makes the MG90S stall and can hang the board). Each press nudges the position a
+small step within a safe range (1250–1750 µs):
 
 | Key | Action |
 |-----|--------|
-| `8` | Close (1900 µs) |
-| `2` | Open (1100 µs) |
+| `8` | Close a step |
+| `2` | Open a step |
 | `5` | Stop / hold current position |
-| `ESC` | Exit (gripper stays where it is) |
+| `ESC` / `q` | Exit (gripper stays where it is) |
 
-If 8/2 feel reversed, swap `PULSE_CLOSE` and `PULSE_OPEN` in `GripperTest.java`.
+Adjust `OPEN_LIMIT` / `CLOSE_LIMIT` in `GripperTest.java` to match your gripper.
 
-### Option 16 — Full test: drive + dual live camera
+### Option 17 — Full test: drive + dual live camera
 
 Opens the dual camera live view (Camera Module 3 RGB | ArduCam ToF depth) **and**
-runs the drive control (same keys as option 7) at the same time — drive the robot
+runs the remote control (same keys as option 8) at the same time — drive the robot
 from the terminal while watching both cameras. Needs a display for the cameras;
 with no display the camera is skipped and you can still drive.
 
@@ -252,7 +261,13 @@ with no display the camera is skipped and you can still drive.
 
 ## Camera Tests (CAM0 — Camera Module 3)
 
-### Option 10 — Still Capture
+### Option 10 — Detection
+
+Runs `rpicam-hello --list-cameras` and checks that the **imx708** sensor (Camera
+Module 3) is listed on CAM0. No image is captured and no window opens.
+PASS = camera detected, FAIL = not found (with fix hints).
+
+### Option 11 — Still Capture
 
 Captures a single image using `rpicam-still` (Bookworm) or `libcamera-still` (Bullseye).  
 Works in SSH sessions — **no display needed**.  
@@ -266,7 +281,7 @@ File:      cam3_20260620_203300.jpg
 Full path: /home/faix/.../logs/boebot-1/cam3_20260620_203300.jpg
 ```
 
-### Option 11 — Live Preview
+### Option 12 — Live Preview
 
 Opens a live camera preview window on the screen.  
 **Requires a display** — HDMI/DSI screen, VNC, or X11 forwarding (`ssh -X`).  
@@ -282,13 +297,13 @@ LIVE PREVIEW NOT AVAILABLE: no display detected. Use still capture test instead.
 
 ## ToF Camera Tests (CAM1 — ArduCam ToF)
 
-### Option 12 — SDK Detection
+### Option 13 — SDK Detection
 
 Checks if the ArduCam ToF SDK is installed at `~/Arducam_tof_camera`.  
 Checks Python 3, lists example files, and verifies `ArducamDepthCamera` is importable.  
 **No camera is opened.** PASS = SDK ready, FAIL = missing components with fix instructions.
 
-### Option 14 — Live Preview
+### Option 15 — Live Preview
 
 Opens a live depth + amplitude preview window using Python + OpenCV.  
 **Requires a display** — HDMI/DSI screen, VNC, or X11 forwarding.  
@@ -298,14 +313,15 @@ Displays:
 - **Left panel**: depth map (JET colourmap, 0–4 m range)
 - **Right panel**: amplitude / confidence map (greyscale)
 
-Close the window or press **Q / ESC** to stop. Or press Ctrl+C to force-stop.
+Close the window (X button) or press **Q / ESC** to stop. Or press Ctrl+C to
+force-stop.
 
 If no display is detected:
 ```
 LIVE PREVIEW NOT AVAILABLE: no display detected. Use still capture test instead.
 ```
 
-### Option 15 — Capture / Save
+### Option 14 — Capture / Save
 
 Captures a single ToF frame and saves output files.  
 **No display needed** — works in headless SSH sessions.
@@ -335,7 +351,7 @@ Full paths:
 
 ## Dual Camera View (CAM0 + CAM1 together)
 
-### Option 13 — Dual Live View
+### Option 16 — Dual Live View
 
 Shows **both cameras at once** in a single window, side by side:
 
@@ -417,23 +433,24 @@ BOEBOT_RPI5_CAM3_TOF/
     ├── PCA9685.java                    I2C driver for PCA9685 Servo HAT
     ├── RawKey.java                     Single-keypress reader for interactive servo tests
     ├── ServoSafety.java                Ctrl+C-safe servo shutdown (turns outputs off)
-    ├── InteractiveWheel.java           Shared incremental wheel control (options 5, 8)
+    ├── InteractiveWheel.java           Shared incremental wheel control (options 5, 6)
     ├── SystemInfoTest.java             Option 1:  System information
     ├── I2CDetectTest.java              Option 2:  I2C detect / confirm 0x40
     ├── PCA9685InitTest.java            Option 3:  PCA9685 initialization
     ├── CalibrateNeutralTest.java       Option 4:  Calibrate wheel neutral (1500us)
     ├── RightWheelTest.java             Option 5:  Right wheel CH14 (incremental)
-    ├── BothWheelsTest.java             Option 6:  Both wheels auto sequence
-    ├── DriveControlTest.java           Option 7:  Drive control (8/2/4/6, 5 stop)
-    ├── LeftWheelTest.java              Option 8:  Left wheel CH15 (incremental)
+    ├── LeftWheelTest.java              Option 6:  Left wheel CH15 (incremental)
+    ├── BothWheelsTest.java             Option 7:  Both wheels auto sequence
+    ├── DriveControlTest.java           Option 8:  Remote control (8/2/4/6, 5 stop)
     ├── GripperTest.java                Option 9:  MG90S gripper servo CH0
-    ├── CameraModule3Test.java          Option 10: Camera Module 3 still capture
-    ├── CameraModule3PreviewTest.java   Option 11: Camera Module 3 live preview
-    ├── ToFCameraTest.java              Option 12: ArduCam ToF SDK detection
-    ├── DualCameraViewTest.java         Option 13: Dual camera live view CAM0+CAM1
-    ├── ToFPreviewTest.java             Option 14: ArduCam ToF live preview
-    ├── ToFCaptureTest.java             Option 15: ArduCam ToF capture/save
-    └── FullDriveCameraTest.java        Option 16: Full test: drive + dual live camera
+    ├── CameraModule3DetectTest.java    Option 10: Camera Module 3 detection
+    ├── CameraModule3Test.java          Option 11: Camera Module 3 still capture
+    ├── CameraModule3PreviewTest.java   Option 12: Camera Module 3 live preview
+    ├── ToFCameraTest.java              Option 13: ArduCam ToF SDK detection
+    ├── ToFCaptureTest.java             Option 14: ArduCam ToF capture/save
+    ├── ToFPreviewTest.java             Option 15: ArduCam ToF live preview
+    ├── DualCameraViewTest.java         Option 16: Dual camera live view CAM0+CAM1
+    └── FullDriveCameraTest.java        Option 17: Full test: drive + dual live camera
 ```
 
 ---
