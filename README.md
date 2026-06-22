@@ -427,6 +427,10 @@ Pi from Windows. It runs `scripts/setup_remote_access.sh`, which:
 - writes `/etc/X11/Xwrapper.config` (`allowed_users=anybody`,
   `needs_root_rights=yes`),
 - enables and restarts XRDP,
+- on **Trixie or newer**, sets boot to **Console + require login** (`B1`) to
+  avoid the XRDP *"authentication agent already exists"* polkit clash that
+  happens when the same user is logged in both locally and over RDP. On
+  **Bookworm/Bullseye** autologin is left as-is (simultaneous login works there),
 - adds your user to useful groups if present (`video`, `audio`, `plugdev`,
   `gpio`, `i2c`, `spi`),
 - prints the hostname and IP and the connection instructions.
