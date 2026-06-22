@@ -27,7 +27,7 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 
 ```
 ====================================
- BOEBOT RPi5 Hardware Test App v2.3
+ BOEBOT RPi5 Hardware Test App v2.4
 ====================================
 1  - System info
 2  - Check I2C Servo HAT
@@ -46,6 +46,8 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 15 - ArduCam ToF live preview CAM1
 16 - Dual camera live view CAM0+CAM1
 17 - Full test: drive + dual live camera
+18 - Setup/repair Remote Access SSH + XRDP
+19 - Show IP address and remote status
 0  - Exit
 ====================================
 ```
@@ -401,6 +403,52 @@ sudo apt-get install -y python3-picamera2 python3-opencv
 
 ---
 
+## Remote Access (SSH + Remote Desktop)
+
+> **No IP address, username, or password is ever asked for or stored by the app.**
+> The app only installs/enables services and reads the Pi's own hostname/IP live
+> to print it. You log in with your normal Raspberry Pi username and password.
+
+### Option 18 — Setup/repair Remote Access (SSH + XRDP)
+
+Installs and repairs SSH and Remote Desktop (XRDP + Xorg) so you can reach the
+Pi from Windows. It runs `scripts/setup_remote_access.sh`, which:
+
+- installs and enables **SSH** (`openssh-server`, `systemctl enable/restart ssh`),
+- installs/repairs **XRDP + Xorg** (`xrdp`, `xorgxrdp`, `xserver-xorg-core`,
+  `xserver-xorg-input-all`, `xserver-xorg-video-dummy`, `dbus-x11`; tries
+  `xserver-xorg-legacy` but does not fail if it is unavailable),
+- writes `/etc/X11/Xwrapper.config` (`allowed_users=anybody`,
+  `needs_root_rights=yes`),
+- enables and restarts XRDP,
+- adds your user to useful groups if present (`video`, `audio`, `plugdev`,
+  `gpio`, `i2c`, `spi`),
+- prints the hostname and IP and the connection instructions.
+
+Before it runs, the app shows a warning that it installs/repairs SSH, XRDP and
+Xorg packages, may require a sudo password and may need a reboot. You must type
+exactly **`SETUP_REMOTE`** to proceed — anything else cancels. The script is
+**idempotent** (safe to run again). **Reboot is recommended afterwards.**
+
+### Option 19 — Show IP address and remote status
+
+Prints the Pi's **hostname**, **IP address** (`hostname -I`), **SSH status**
+(`systemctl is-active ssh`) and **XRDP status** (`systemctl is-active xrdp`),
+plus the Remote Desktop connection instructions. Nothing is stored.
+
+### Connecting from Windows
+
+1. Open the **Remote Desktop** app on Windows.
+2. **Computer**: the IP address shown by option 19 (or option 18).
+3. When the XRDP login page appears, set **Session: `Xorg`**.
+4. **Username / Password**: your Raspberry Pi username and password.
+
+> **If XRDP disconnects right after login**, reboot the Pi (`sudo reboot`) and
+> try again — the Xorg session needs a clean start after the packages are
+> installed/repaired.
+
+---
+
 ## Log Files
 
 Logs are saved automatically to:
@@ -445,7 +493,8 @@ BOEBOT_RPI5_CAM3_TOF/
 ├── config/
 │   └── boebot.properties              Hardware configuration
 ├── scripts/
-│   ├── install_boebot.sh              Install all dependencies on Raspberry Pi
+│   ├── install_boebot.sh              Install all dependencies + camera overlays
+│   ├── setup_remote_access.sh         Setup/repair SSH + XRDP (option 18)
 │   └── run_boebot_test.sh             Build and run the app
 └── src/main/java/my/boebot/
     ├── Main.java                       Entry point and menu loop
@@ -471,7 +520,9 @@ BOEBOT_RPI5_CAM3_TOF/
     ├── ToFCaptureTest.java             Option 14: ArduCam ToF capture/save
     ├── ToFPreviewTest.java             Option 15: ArduCam ToF live preview
     ├── DualCameraViewTest.java         Option 16: Dual camera live view CAM0+CAM1
-    └── FullDriveCameraTest.java        Option 17: Full test: drive + dual live camera
+    ├── FullDriveCameraTest.java        Option 17: Full test: drive + dual live camera
+    ├── RemoteAccessSetupTest.java      Option 18: Setup/repair Remote Access SSH + XRDP
+    └── RemoteStatusTest.java           Option 19: Show IP address and remote status
 ```
 
 ---
