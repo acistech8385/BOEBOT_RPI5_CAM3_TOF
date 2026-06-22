@@ -32,8 +32,8 @@ public class GripperTest {
     private static final int OPEN_LIMIT  = 1350;  // most-open (safe)
     private static final int CLOSE_LIMIT = 1650;  // most-closed (safe)
     private static final int CENTER      = 1500;
-    private static final int STEP        = 60;    // us per key press (visible)
-    private static final int TRAVEL_MS   = 250;   // time to let the servo move
+    private static final int STEP        = 40;    // us per key press (small, gentle)
+    private static final int TRAVEL_MS   = 180;   // brief pulse to limit stall time
 
     public static boolean run(AppLogger logger, BotConfig config,
                                Context pi4j, Scanner scanner) {
@@ -67,12 +67,15 @@ public class GripperTest {
             stopHook = ServoSafety.installStopHook(config.getI2cBus(), config.getI2cAddress());
 
             int pos = CENTER;
-            // Brief move to centre, then relax (no holding current).
-            nudge(pca, GRIPPER_CH, pos);
+            // Start RELAXED (no pulse). Do NOT auto-move - if the horn is
+            // misaligned, commanding centre could stall the servo immediately.
+            pca.setOff(GRIPPER_CH);
 
             System.out.println();
-            System.out.println("  Centred. Press 8 / 2 / 5, or ESC (or q) to exit...");
-            System.out.println("  (If a single key does nothing, press Enter after it.)");
+            System.out.println("  Servo relaxed. Press 8 / 2 to inch (from " + CENTER + " us),");
+            System.out.println("  5 = relax, ESC (or q) to exit...");
+            System.out.println("  If you hear continuous buzzing, the servo is STALLING -");
+            System.out.println("  press 5 and re-check the gripper horn / mechanical range.");
             System.out.println();
 
             RawKey.enableRawMode();
