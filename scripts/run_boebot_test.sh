@@ -19,9 +19,13 @@ echo ""
 # Go to project root
 cd "$PROJECT_DIR"
 
-# Build the fat JAR with Maven
-echo "[BUILD] Running: mvn clean package -q"
-mvn clean package -q
+# Build the fat JAR with Maven.
+# No "clean" here on purpose - Maven only recompiles files that changed
+# (incremental), which is much faster on a Pi than a full rebuild every
+# run. If something seems stale/weird after a big refactor, run a manual
+# full rebuild once:  mvn clean package
+echo "[BUILD] Running: mvn package -q"
+mvn package -q
 
 if [ $? -ne 0 ]; then
     echo ""
