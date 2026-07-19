@@ -106,8 +106,16 @@ public class Main {
 
             if (running) {
                 System.out.println();
-                System.out.println("Press Enter to return to menu...");
-                scanner.nextLine();
+                System.out.println("Press any key to return to menu...");
+                // Single keypress (no Enter needed). Falls back to a line read
+                // if the terminal is not a TTY (raw mode unavailable).
+                RawKey.enableRawMode();
+                int k = RawKey.readKey();
+                RawKey.restoreMode();
+                if (k == -1) {
+                    // raw mode not active - wait for Enter instead
+                    scanner.nextLine();
+                }
             }
         }
 

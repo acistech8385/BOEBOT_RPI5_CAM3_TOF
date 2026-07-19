@@ -61,8 +61,8 @@ public class DualCameraViewTest {
             except ImportError as e:
                 fail("ArducamDepthCamera not importable: " + str(e))
 
-            VIEW_W, VIEW_H = 640, 480          # display panel size
-            CAP_W, CAP_H   = 1280, 720         # RGB capture size (downscaled = sharp)
+            VIEW_W, VIEW_H = 800, 600          # display panel size (bigger = sharper)
+            CAP_W, CAP_H   = 2304, 1296        # native imx708 mode, downscaled = sharp
 
             # -- Open Camera Module 3 (RGB) on CAM0 --
             log("Opening Camera Module 3 (RGB, CAM0)...")
@@ -72,11 +72,14 @@ public class DualCameraViewTest {
                     main={"size": (CAP_W, CAP_H), "format": "RGB888"})
                 picam2.configure(cfg)
                 picam2.start()
-                # Continuous autofocus so the RGB feed is sharp (matches
+                # Continuous, fast autofocus so the RGB feed is sharp (matches
                 # rpicam-hello). Without this the lens sits at a fixed, blurry
-                # position. Ignored gracefully on fixed-focus modules.
+                # position. Also fire a one-shot AF cycle to lock quickly.
+                # Ignored gracefully on fixed-focus modules.
                 try:
-                    picam2.set_controls({"AfMode": 2, "AfTrigger": 0})
+                    picam2.set_controls({"AfMode": 2, "AfSpeed": 1})
+                    time.sleep(0.3)
+                    picam2.set_controls({"AfTrigger": 0})
                 except Exception:
                     pass
             except Exception as e:

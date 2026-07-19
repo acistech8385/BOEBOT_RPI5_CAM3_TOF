@@ -227,6 +227,13 @@ public class ToFCaptureTest {
                 }
                 logger.logPass("ArduCam ToF Capture/Save CAM1");
                 System.out.println();
+                // Open the folder and highlight the depth image (prefer a PNG).
+                File toReveal = logDir;
+                for (String f : savedFiles) {
+                    if (f.toLowerCase().endsWith(".png")) { toReveal = new File(f); break; }
+                }
+                FileReveal.reveal(toReveal);
+                System.out.println();
                 System.out.println("[RESULT] PASS - ToF frame captured and saved (" + savedFiles.size() + " file(s)).");
                 return true;
 

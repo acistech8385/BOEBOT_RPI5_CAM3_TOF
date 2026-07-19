@@ -93,7 +93,11 @@ public class ToFPreviewTest {
                 log("Camera started. Range: " + str(r) + "mm")
 
             WINDOW = "ArduCam ToF -- Depth (colour) | Confidence (grey)"
+            # WINDOW_NORMAL = resizable + the image auto-scales to fill the window.
             cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
+            # Open big (the raw ToF frame is only ~240x180). The user can drag to
+            # resize and the video scales to fit automatically.
+            cv2.resizeWindow(WINDOW, 1280, 480)
             log("Close the window or press Q / ESC to stop.")
             frames = 0
 
@@ -113,6 +117,8 @@ public class ToFPreviewTest {
                     conf_bgr = cv2.cvtColor(conf_norm, cv2.COLOR_GRAY2BGR)
 
                     combo = cv2.hconcat([result, conf_bgr])
+                    # Upscale for a larger, smoother preview before display.
+                    combo = cv2.resize(combo, (1280, 480), interpolation=cv2.INTER_NEAREST)
                     cv2.imshow(WINDOW, combo)
 
                 # waitKey(30) gives the GUI time to deliver key + window events.

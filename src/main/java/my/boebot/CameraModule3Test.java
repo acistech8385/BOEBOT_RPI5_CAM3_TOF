@@ -101,6 +101,9 @@ public class CameraModule3Test {
                 logger.log("  Image saved: " + imageFile.getAbsolutePath() + " (" + sizeKB + " KB)");
                 logger.logPass("Camera Module 3 Still Capture CAM0");
                 System.out.println();
+                // Open the folder and highlight the new image (if a display is up).
+                FileReveal.reveal(imageFile);
+                System.out.println();
                 System.out.println("[RESULT] PASS - Camera Module 3 captured image.");
                 return true;
 
