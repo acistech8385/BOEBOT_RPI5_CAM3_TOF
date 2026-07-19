@@ -27,6 +27,8 @@ public class RemoteAccessSetupTest {
         System.out.println();
         System.out.println("  This will install/repair SSH, XRDP and Xorg packages.");
         System.out.println("  It may require sudo password and may need reboot.");
+        System.out.println("  It also patches the XRDP black-screen issue, so the same");
+        System.out.println("  user can be logged in on HDMI and RDP (Xorg) at once.");
         System.out.println("  On Trixie (or newer) it also disables desktop autologin");
         System.out.println("  (boot to console + login) to avoid an XRDP session clash.");
         System.out.println();
