@@ -115,6 +115,10 @@ public class Main {
                 // if the terminal is not a TTY (raw mode unavailable).
                 RawKey.enableRawMode();
                 int k = RawKey.readKey();
+                // Discard any trailing bytes of a multi-byte key (e.g. an
+                // arrow key sends ESC '[' 'A'..'D') so they don't leak into
+                // the next menu prompt's Scanner.nextLine() as e.g. "[B9".
+                RawKey.drainPending();
                 RawKey.restoreMode();
                 if (k == -1) {
                     // raw mode not active - wait for Enter instead

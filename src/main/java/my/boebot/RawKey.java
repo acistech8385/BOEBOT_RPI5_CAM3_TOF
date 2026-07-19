@@ -41,6 +41,24 @@ public final class RawKey {
         }
     }
 
+    /**
+     * Reads and discards any bytes already buffered (non-blocking).
+     *
+     * Special keys like arrow keys send a multi-byte escape sequence
+     * (e.g. Down = ESC '[' 'B'). readKey() only consumes the first byte, so
+     * the rest would otherwise leak into the next line-based read (e.g. a
+     * Scanner menu prompt) and corrupt it - "9" typed after a stray arrow
+     * key becomes "[B9". Call this while still in raw mode, right after
+     * readKey() and before restoreMode(), to flush any such leftovers.
+     */
+    public static void drainPending() {
+        try {
+            while (System.in.available() > 0) {
+                System.in.read();
+            }
+        } catch (IOException ignore) {}
+    }
+
     private static void runStty(String cmd) {
         try {
             new ProcessBuilder("sh", "-c", cmd).inheritIO().start().waitFor();
