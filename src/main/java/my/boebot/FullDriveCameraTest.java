@@ -102,7 +102,7 @@ public class FullDriveCameraTest {
                 except ImportError:
                     log("lgpio not installed - line sensor disabled (sudo apt-get install -y python3-lgpio)")
 
-            def rctime(pin, timeout_us=8000.0):
+            def rctime(pin, timeout_us=60000.0):
                 import lgpio
                 # No internal pull resistor - it would swamp the QTI's own
                 # RC-time and make the reading stop responding to the surface.

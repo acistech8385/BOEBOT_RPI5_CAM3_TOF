@@ -64,7 +64,7 @@ public class LineSensorTest {
             # change when plugged in".
             PULL_NONE = getattr(lgpio, "SET_PULL_NONE", 0)
 
-            def rctime(pin, timeout_us=8000.0):
+            def rctime(pin, timeout_us=60000.0):
                 # Charge the capacitor, then time the discharge while input is HIGH.
                 lgpio.gpio_claim_output(h, pin, 1)
                 time.sleep(0.001)
