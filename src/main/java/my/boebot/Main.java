@@ -28,9 +28,10 @@ import java.util.Scanner;
  *   15 - ArduCam ToF live preview CAM1
  *   16 - Dual camera live view (CAM0 RGB + CAM1 ToF)
  *   17 - Line sensor test (SumoBot QTI L/R/both)
- *   18 - Full test: drive + dual live camera
- *   19 - Setup/repair Remote Access SSH + XRDP
- *   20 - Show IP address and remote status
+ *   18 - Full test BOEBOT (drive + dual camera + gripper)
+ *   19 - Full test SUMOBOT (drive + dual camera + line sensor)
+ *   20 - Setup/repair Remote Access SSH + XRDP
+ *   21 - Show IP address and remote status
  *   0  - Exit
  */
 public class Main {
@@ -91,9 +92,10 @@ public class Main {
                 case "15" -> ToFPreviewTest.run(logger, config);
                 case "16" -> DualCameraViewTest.run(logger, config);
                 case "17" -> LineSensorTest.run(logger, config);
-                case "18" -> FullDriveCameraTest.run(logger, config, pi4j, scanner);
-                case "19" -> RemoteAccessSetupTest.run(logger, scanner);
-                case "20" -> RemoteStatusTest.run(logger);
+                case "18" -> FullDriveCameraTest.run(logger, config, pi4j, scanner, "boebot");
+                case "19" -> FullDriveCameraTest.run(logger, config, pi4j, scanner, "sumobot");
+                case "20" -> RemoteAccessSetupTest.run(logger, scanner);
+                case "21" -> RemoteStatusTest.run(logger);
                 case "0"  -> {
                     System.out.println();
                     System.out.println("Exiting BOEBOT Hardware Test App.");
@@ -102,7 +104,7 @@ public class Main {
                 }
                 default -> {
                     System.out.println("Invalid choice: \"" + input + "\"");
-                    System.out.println("Please enter a number from the menu (0-20).");
+                    System.out.println("Please enter a number from the menu (0-21).");
                 }
             }
 
@@ -134,7 +136,7 @@ public class Main {
     private static void printMenu() {
         System.out.println();
         System.out.println("====================================");
-        System.out.println(" BOEBOT RPi5 Hardware Test App v2.5");
+        System.out.println(" BOEBOT RPi5 Hardware Test App v2.6");
         System.out.println("====================================");
         System.out.println("1  - System info");
         System.out.println("2  - Check I2C Servo HAT");
@@ -153,9 +155,10 @@ public class Main {
         System.out.println("15 - ArduCam ToF live preview CAM1");
         System.out.println("16 - Dual camera live view CAM0+CAM1");
         System.out.println("17 - Line sensor test (SumoBot QTI L/R/both)");
-        System.out.println("18 - Full test: drive + dual live camera");
-        System.out.println("19 - Setup/repair Remote Access SSH + XRDP");
-        System.out.println("20 - Show IP address and remote status");
+        System.out.println("18 - Full test BOEBOT (drive + cam + gripper)");
+        System.out.println("19 - Full test SUMOBOT (drive + cam + line sensor)");
+        System.out.println("20 - Setup/repair Remote Access SSH + XRDP");
+        System.out.println("21 - Show IP address and remote status");
         System.out.println("0  - Exit");
         System.out.println("====================================");
     }

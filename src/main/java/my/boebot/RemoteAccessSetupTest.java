@@ -4,7 +4,7 @@ import java.io.File;
 import java.util.Scanner;
 
 /**
- * RemoteAccessSetupTest - Menu Option 19: setup/repair Remote Access (SSH + XRDP).
+ * RemoteAccessSetupTest - Menu Option 20: setup/repair Remote Access (SSH + XRDP).
  *
  * Runs scripts/setup_remote_access.sh (via ProcessBuilder, inheriting the
  * terminal so sudo prompts work). The user must type exactly SETUP_REMOTE to
@@ -22,7 +22,7 @@ public class RemoteAccessSetupTest {
     public static boolean run(AppLogger logger, Scanner scanner) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 19: Setup/Repair Remote Access (SSH + XRDP)");
+        System.out.println("  Test 20: Setup/Repair Remote Access (SSH + XRDP)");
         System.out.println("====================================");
         System.out.println();
         System.out.println("  This will install/repair SSH, XRDP and Xorg packages.");
@@ -39,7 +39,7 @@ public class RemoteAccessSetupTest {
         System.out.print("  > ");
 
         logger.logSeparator();
-        logger.log("TEST 19: Setup/Repair Remote Access (SSH + XRDP)");
+        logger.log("TEST 20: Setup/Repair Remote Access (SSH + XRDP)");
 
         String input = scanner.nextLine().trim();
         if (!input.equals(CONFIRM)) {

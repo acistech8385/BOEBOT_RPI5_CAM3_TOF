@@ -8,29 +8,38 @@ import java.nio.file.Path;
 import java.util.Scanner;
 
 /**
- * FullDriveCameraTest - Menu Option 18: drive the robot while watching both
- * cameras, all in ONE window.
+ * FullDriveCameraTest - Menu Option 18 (BOEBOT) / 19 (SumoBot): drive the robot
+ * while watching both cameras, all in ONE window.
  *
- * Unlike option 8 (which drives from the terminal), here the driving keys are
- * read by the camera window itself, so there is no focus tug-of-war between the
- * terminal and the OpenCV window. Press the keys while the camera window is
- * focused:
- *   8 = forward, 2 = backward, 4 = turn left, 6 = turn right, 5 = stop,
+ * The driving keys are read by the camera window itself (no terminal focus
+ * fight). Control is HOLD-TO-MOVE: hold a direction key to move, release it and
+ * the wheels stop (a watchdog stops the motors if no movement key arrives for a
+ * short time). Keys, in the window:
+ *   8 = forward, 2 = backward, 4 = turn left, 6 = turn right (hold), 5 = stop,
  *   Q / ESC = quit.
  *
- * The Java side initialises the PCA9685 to 50 Hz (the setting persists in the
- * chip), then launches a Python window that shows both cameras and sets the
- * wheel pulses via i2cset. On exit all servo outputs are cut.
+ * Mode extras:
+ *   boebot  - o = open gripper, c = close gripper (CH0).
+ *   sumobot - live QTI line-sensor status overlay (LEFT / RIGHT / BOTH / none).
  *
- * Needs a display (HDMI/VNC/X11). Calibrate the wheels first (option 4) or an
- * untrimmed wheel will creep even when stopped.
+ * The Java side initialises the PCA9685 to 50 Hz, then launches a Python window
+ * that shows both cameras and sets the wheel pulses via i2cset. On exit all
+ * servo outputs are cut. Needs a display (HDMI/VNC/X11); calibrate the wheels
+ * first (option 4) so a stopped wheel does not creep.
  */
 public class FullDriveCameraTest {
 
-    private static final String FULL_SCRIPT = """
+    // Template with __PLACEHOLDERS__ replaced at runtime (String.replace, so the
+    // Python %-formatting inside is left untouched).
+    private static final String FULL_SCRIPT_TEMPLATE = """
             #!/usr/bin/env python3
-            # BOEBOT Full Test: drive (in this window) + dual live camera
+            # BOEBOT/SumoBot Full Test: hold-to-move drive + dual live camera
             import sys, time, subprocess
+
+            MODE       = "__MODE__"        # "boebot" or "sumobot"
+            RIGHT_GPIO = __RIGHT_GPIO__
+            LEFT_GPIO  = __LEFT_GPIO__
+            LINE_THRESH = __THRESH__       # us; RC-time above this = black
 
             def log(m): print("BOEBOT: " + str(m), flush=True)
             def fail(m): print("FAIL: " + str(m), flush=True); sys.exit(1)
@@ -52,8 +61,15 @@ public class FullDriveCameraTest {
             except ImportError as e:
                 fail("ArducamDepthCamera not importable: " + str(e))
 
+            # Snappier keyboard auto-repeat so 'hold to move' feels continuous.
+            try:
+                subprocess.run(["xset", "r", "rate", "200", "45"],
+                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            except Exception:
+                pass
+
             # -- Servo control via i2cset. The app already set the PCA9685 to 50 Hz. --
-            RIGHT_CH, LEFT_CH = 14, 15
+            RIGHT_CH, LEFT_CH, GRIP_CH = 14, 15, 0
             def _set(reg, val):
                 subprocess.run(["i2cset", "-y", "1", "0x40", str(reg), str(val)],
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -69,9 +85,55 @@ public class FullDriveCameraTest {
                 set_pulse(LEFT_CH, lp)
             def stop():
                 drive(1500, 1500)
+            def gripper(us):
+                set_pulse(GRIP_CH, us)
 
-            VIEW_W, VIEW_H = 640, 480
-            CAP_W, CAP_H   = 1280, 720
+            # -- SumoBot line sensors (QTI RC-time via lgpio) --
+            line_h = None
+            if MODE == "sumobot":
+                try:
+                    import lgpio
+                    for chip in (4, 0, 1):
+                        try:
+                            line_h = lgpio.gpiochip_open(chip)
+                            break
+                        except Exception:
+                            line_h = None
+                except ImportError:
+                    log("lgpio not installed - line sensor disabled (sudo apt-get install -y python3-lgpio)")
+
+            def rctime(pin, timeout_us=8000.0):
+                import lgpio
+                lgpio.gpio_claim_output(line_h, pin, 1)
+                time.sleep(0.001)
+                lgpio.gpio_free(line_h, pin)
+                lgpio.gpio_claim_input(line_h, pin)
+                t0 = time.perf_counter()
+                limit = timeout_us / 1.0e6
+                while lgpio.gpio_read(line_h, pin) == 1:
+                    if (time.perf_counter() - t0) > limit:
+                        break
+                us = (time.perf_counter() - t0) * 1.0e6
+                lgpio.gpio_free(line_h, pin)
+                return us
+
+            def line_status():
+                if line_h is None:
+                    return "line sensor N/A"
+                try:
+                    rt = rctime(RIGHT_GPIO)
+                    lt = rctime(LEFT_GPIO)
+                except Exception:
+                    return "line sensor error"
+                lb = lt > LINE_THRESH
+                rb = rt > LINE_THRESH
+                if lb and rb:  return "LINE: BOTH"
+                if lb:         return "LINE: LEFT"
+                if rb:         return "LINE: RIGHT"
+                return "LINE: none"
+
+            VIEW_W, VIEW_H = 800, 600
+            CAP_W, CAP_H   = 2304, 1296
 
             log("Opening Camera Module 3 (RGB, CAM0)...")
             try:
@@ -81,7 +143,9 @@ public class FullDriveCameraTest {
                 picam2.configure(cfg)
                 picam2.start()
                 try:
-                    picam2.set_controls({"AfMode": 2, "AfTrigger": 0})
+                    picam2.set_controls({"AfMode": 2, "AfSpeed": 1})
+                    time.sleep(0.3)
+                    picam2.set_controls({"AfTrigger": 0})
                 except Exception:
                     pass
             except Exception as e:
@@ -109,10 +173,17 @@ public class FullDriveCameraTest {
             r = 4000
 
             stop()
-            WINDOW = "BOEBOT Full -- drive HERE | RGB (CAM0) | Depth (CAM1)"
+            WINDOW = "BOEBOT Full (" + MODE + ") -- drive HERE | RGB | Depth"
             cv2.namedWindow(WINDOW, cv2.WINDOW_NORMAL)
-            log("Drive in THIS window: 8 fwd, 2 back, 4 left, 6 right, 5 stop, Q/ESC quit.")
+            cv2.resizeWindow(WINDOW, 1600, 600)
+            log("HOLD 8/2/4/6 to move (release=stop), 5 stop, Q/ESC quit.")
             depth_vis = np.zeros((VIEW_H, VIEW_W, 3), dtype="uint8")
+
+            MOVE_TIMEOUT = 0.4    # stop if no movement key within this (release detect)
+            last_move = 0.0
+            moving = False
+            line_txt = ""
+            frame_n = 0
 
             try:
                 while True:
@@ -131,32 +202,54 @@ public class FullDriveCameraTest {
                         depth_vis = cv2.resize(depth_vis, (VIEW_W, VIEW_H),
                                                interpolation=cv2.INTER_NEAREST)
 
+                    # Line sensor (sumobot) - read a few times per second.
+                    frame_n += 1
+                    if MODE == "sumobot" and (frame_n % 3 == 0):
+                        line_txt = line_status()
+                        log(line_txt)
+
                     left = rgb.copy()
                     right = depth_vis.copy()
                     cv2.putText(left, "RGB CAM0", (8, 22),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
                     cv2.putText(right, "Depth CAM1", (8, 22),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 255), 2)
-                    cv2.putText(left, "8 fwd 2 back 4 left 6 right 5 stop Q quit",
-                                (8, VIEW_H - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
-                                (255, 255, 255), 1)
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+                    hint = "HOLD 8/2/4/6 move  5 stop  Q quit"
+                    if MODE == "boebot":
+                        hint += "   o=open c=close"
+                    cv2.putText(left, hint, (8, VIEW_H - 14),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+                    if MODE == "sumobot" and line_txt:
+                        colour = (0, 0, 255) if "none" not in line_txt else (200, 200, 200)
+                        cv2.putText(left, line_txt, (8, 52),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, colour, 2)
 
                     combo = cv2.hconcat([left, right])
                     cv2.imshow(WINDOW, combo)
 
                     k = cv2.waitKey(30) & 0xFF
+                    now = time.time()
                     if k == ord("8"):
-                        drive(1450, 1550); log("FORWARD")
+                        drive(1450, 1550); last_move = now; moving = True
                     elif k == ord("2"):
-                        drive(1550, 1450); log("BACKWARD")
+                        drive(1550, 1450); last_move = now; moving = True
                     elif k == ord("6"):
-                        drive(1550, 1550); log("TURN RIGHT")
+                        drive(1550, 1550); last_move = now; moving = True
                     elif k == ord("4"):
-                        drive(1450, 1450); log("TURN LEFT")
+                        drive(1450, 1450); last_move = now; moving = True
                     elif k == ord("5"):
-                        stop(); log("STOP")
+                        stop(); moving = False
+                    elif MODE == "boebot" and k in (ord("o"), ord("O")):
+                        gripper(1350); log("GRIPPER OPEN")
+                    elif MODE == "boebot" and k in (ord("c"), ord("C")):
+                        gripper(1650); log("GRIPPER CLOSE")
                     elif k in (ord("q"), ord("Q"), 27):
                         break
+
+                    # Hold-to-move watchdog: release the key and the wheels stop.
+                    if moving and (now - last_move) > MOVE_TIMEOUT:
+                        stop(); moving = False
+
                     try:
                         if cv2.getWindowProperty(WINDOW, cv2.WND_PROP_VISIBLE) < 1:
                             break
@@ -167,25 +260,40 @@ public class FullDriveCameraTest {
                 cam.stop()
                 cam.close()
                 picam2.stop()
+                if line_h is not None:
+                    try:
+                        import lgpio
+                        lgpio.gpiochip_close(line_h)
+                    except Exception:
+                        pass
                 cv2.destroyAllWindows()
                 log("Full test ended. Servos stopped.")
             """;
 
     public static boolean run(AppLogger logger, BotConfig config,
-                               Context pi4j, Scanner scanner) {
+                               Context pi4j, Scanner scanner, String mode) {
+        boolean sumo = "sumobot".equalsIgnoreCase(mode);
+        String title = sumo ? "SumoBot" : "BOEBOT";
+        int testNo = sumo ? 19 : 18;
+
         System.out.println();
         System.out.println("============================================");
-        System.out.println("  Test 18: Full Test - Drive + Dual Live Camera");
+        System.out.println("  Test " + testNo + ": Full Test " + title + " - Drive + Dual Live Camera");
         System.out.println("============================================");
-        System.out.println("  Drive IN the camera window: 8 fwd 2 back 4 left 6 right 5 stop Q quit");
+        System.out.println("  HOLD 8/2/4/6 to move (release = stop), 5 = stop, Q/ESC = quit.");
+        if (sumo) {
+            System.out.println("  Live line-sensor status overlay (LEFT / RIGHT / BOTH / none).");
+        } else {
+            System.out.println("  Gripper: o = open, c = close.");
+        }
         System.out.println("  Calibrate wheels first (option 4) so they fully stop.");
 
         logger.logSeparator();
-        logger.log("TEST 18: Full Test - Drive + Dual Live Camera");
+        logger.log("TEST " + testNo + ": Full Test " + title + " - Drive + Dual Live Camera");
 
         if (pi4j == null) {
             System.out.println("[RESULT] FAIL - Pi4J context not available.");
-            logger.logFail("Full Drive+Camera", "Pi4J not available");
+            logger.logFail("Full Test " + title, "Pi4J not available");
             return false;
         }
 
@@ -198,7 +306,7 @@ public class FullDriveCameraTest {
             System.out.println();
             System.out.println("  FULL TEST NEEDS A DISPLAY (you drive inside the camera window).");
             System.out.println("  Use VNC or an HDMI screen. For headless driving use option 8.");
-            logger.logFail("Full Drive+Camera", "No display detected");
+            logger.logFail("Full Test " + title, "No display detected");
             System.out.println("[RESULT] FAIL - No display.");
             return false;
         }
@@ -217,20 +325,26 @@ public class FullDriveCameraTest {
             pca.close();
         } catch (Exception e) {
             System.out.println("  [ERROR] PCA9685 init failed: " + e.getMessage());
-            logger.logFail("Full Drive+Camera", "PCA9685 init: " + e.getMessage());
+            logger.logFail("Full Test " + title, "PCA9685 init: " + e.getMessage());
             System.out.println("[RESULT] FAIL");
             return false;
         }
 
-        // ---- Write + launch the combined window ----
+        // ---- Build the mode-specific script ----
+        String script = FULL_SCRIPT_TEMPLATE
+            .replace("__MODE__", sumo ? "sumobot" : "boebot")
+            .replace("__RIGHT_GPIO__", String.valueOf(config.getLineSensorRightGpio()))
+            .replace("__LEFT_GPIO__", String.valueOf(config.getLineSensorLeftGpio()))
+            .replace("__THRESH__", String.valueOf(config.getLineSensorThresholdUs()));
+
         Path tmpScript;
         try {
-            tmpScript = Files.createTempFile("boebot_full_", ".py");
-            Files.writeString(tmpScript, FULL_SCRIPT);
+            tmpScript = Files.createTempFile("boebot_full_" + (sumo ? "sumo_" : "boe_"), ".py");
+            Files.writeString(tmpScript, script);
             tmpScript.toFile().deleteOnExit();
         } catch (Exception e) {
             System.out.println("  [ERROR] Cannot write temp script: " + e.getMessage());
-            logger.logFail("Full Drive+Camera", "temp file error: " + e.getMessage());
+            logger.logFail("Full Test " + title, "temp file error: " + e.getMessage());
             System.out.println("[RESULT] FAIL");
             return false;
         }
@@ -238,7 +352,7 @@ public class FullDriveCameraTest {
         Thread stopHook = ServoSafety.installStopHook(bus, addr);
         System.out.println();
         System.out.println("[Step 2] Opening the drive + camera window...");
-        System.out.println("  >>> Click the window, then drive with 8/2/4/6, 5 = stop, Q/ESC = quit.");
+        System.out.println("  >>> Click the window, then HOLD 8/2/4/6 to move, 5 = stop, Q/ESC = quit.");
         System.out.println();
 
         try {
@@ -259,20 +373,19 @@ public class FullDriveCameraTest {
             reader.start();
 
             int exitCode = process.waitFor();
-            // Always cut servo outputs after the window closes.
             ServoSafety.allOutputsOff(bus, addr);
 
             System.out.println();
             if (exitCode == 0) {
-                logger.logPass("Full Test - Drive + Dual Camera");
-                System.out.println("[RESULT] PASS - Full drive + camera test ended.");
+                logger.logPass("Full Test " + title + " - Drive + Dual Camera");
+                System.out.println("[RESULT] PASS - Full test " + title + " ended.");
                 return true;
             } else {
                 System.out.println("  Window exited with code " + exitCode + " - check [full] lines above.");
                 System.out.println("  POSSIBLE FIXES:");
-                System.out.println("  - sudo apt-get install -y python3-picamera2 python3-opencv");
+                System.out.println("  - sudo apt-get install -y python3-picamera2 python3-opencv python3-lgpio");
                 System.out.println("  - bash ~/Arducam_tof_camera/Install_dependencies.sh");
-                logger.logFail("Full Drive+Camera", "python exit " + exitCode);
+                logger.logFail("Full Test " + title, "python exit " + exitCode);
                 System.out.println("[RESULT] FAIL");
                 return false;
             }
@@ -280,7 +393,7 @@ public class FullDriveCameraTest {
         } catch (Exception e) {
             ServoSafety.allOutputsOff(bus, addr);
             System.out.println("  [ERROR] " + e.getMessage());
-            logger.logFail("Full Drive+Camera", e.getMessage() != null ? e.getMessage() : "unknown");
+            logger.logFail("Full Test " + title, e.getMessage() != null ? e.getMessage() : "unknown");
             System.out.println("[RESULT] FAIL");
             return false;
         } finally {
