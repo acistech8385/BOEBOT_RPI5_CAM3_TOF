@@ -27,7 +27,7 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 
 ```
 ====================================
- BOEBOT RPi5 Hardware Test App v2.4
+ BOEBOT RPi5 Hardware Test App v2.7
 ====================================
 1  - System info
 2  - Check I2C Servo HAT
@@ -45,9 +45,10 @@ A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to
 14 - ArduCam ToF capture/save CAM1
 15 - ArduCam ToF live preview CAM1
 16 - Dual camera live view CAM0+CAM1
-17 - Full test: drive + dual live camera
-18 - Setup/repair Remote Access SSH + XRDP
-19 - Show IP address and remote status
+17 - Full test BOEBOT (drive + dual cam + gripper)
+18 - Full test SUMOBOT (drive + dual cam)
+19 - Setup/repair Remote Access SSH + XRDP
+20 - Show IP address and remote status
 0  - Exit
 ====================================
 ```
@@ -250,20 +251,26 @@ The gripper relaxing between moves is expected. Adjust `OPEN_LIMIT` /
 > needs its **own VIN power supply** (6–12 V) — a stalling MG90S can pull more
 > current than the Pi's 5 V rail alone can provide.
 
-### Option 17 — Full test: drive + dual live camera
+### Option 17 — Full test BOEBOT / Option 18 — Full test SUMOBOT
 
 One window shows both cameras (Camera Module 3 RGB | ArduCam ToF depth) **and**
 takes the driving keys, so there is no focus fight between the terminal and the
-window. Click the camera window, then drive:
+window. Click the camera window, then drive **HOLD-TO-MOVE** — hold a direction
+key to move, release it and the wheels stop (a watchdog stops the motors if no
+movement key arrives for ~0.4 s):
 
 | Key | Action |
 |-----|--------|
-| `8` | Forward |
-| `2` | Backward |
-| `4` | Turn left |
-| `6` | Turn right |
+| `8` (hold) | Forward |
+| `2` (hold) | Backward |
+| `4` (hold) | Turn left |
+| `6` (hold) | Turn right |
 | `5` | Stop |
 | `Q` / `ESC` | Quit (servos stop) |
+
+**Option 17 (BOEBOT)** adds gripper control: `o` = open, `c` = close (CH0).
+**Option 18 (SUMOBOT)** is the same drive + dual camera test without gripper
+keys, since the SumoBot chassis has no gripper.
 
 **Needs a display** (HDMI/VNC/X11) — the driving keys are read by the window.
 **Calibrate the wheels first (option 4)** or an untrimmed wheel will creep even
@@ -415,7 +422,7 @@ sudo apt-get install -y python3-picamera2 python3-opencv
 > The app only installs/enables services and reads the Pi's own hostname/IP live
 > to print it. You log in with your normal Raspberry Pi username and password.
 
-### Option 18 — Setup/repair Remote Access (SSH + XRDP)
+### Option 19 — Setup/repair Remote Access (SSH + XRDP)
 
 Installs and repairs SSH and Remote Desktop (XRDP + Xorg) so you can reach the
 Pi from Windows. It runs `scripts/setup_remote_access.sh`, which:
@@ -440,7 +447,7 @@ Xorg packages, may require a sudo password and may need a reboot. You must type
 exactly **`SETUP_REMOTE`** to proceed — anything else cancels. The script is
 **idempotent** (safe to run again). **Reboot is recommended afterwards.**
 
-### Option 19 — Show IP address and remote status
+### Option 20 — Show IP address and remote status
 
 Prints the Pi's **hostname**, **IP address** (`hostname -I`), **SSH status**
 (`systemctl is-active ssh`) and **XRDP status** (`systemctl is-active xrdp`),
@@ -530,9 +537,9 @@ BOEBOT_RPI5_CAM3_TOF/
     ├── ToFCaptureTest.java             Option 14: ArduCam ToF capture/save
     ├── ToFPreviewTest.java             Option 15: ArduCam ToF live preview
     ├── DualCameraViewTest.java         Option 16: Dual camera live view CAM0+CAM1
-    ├── FullDriveCameraTest.java        Option 17: Full test: drive + dual live camera
-    ├── RemoteAccessSetupTest.java      Option 18: Setup/repair Remote Access SSH + XRDP
-    └── RemoteStatusTest.java           Option 19: Show IP address and remote status
+    ├── FullDriveCameraTest.java        Options 17/18: Full test BOEBOT / SUMOBOT
+    ├── RemoteAccessSetupTest.java      Option 19: Setup/repair Remote Access SSH + XRDP
+    └── RemoteStatusTest.java           Option 20: Show IP address and remote status
 ```
 
 ---

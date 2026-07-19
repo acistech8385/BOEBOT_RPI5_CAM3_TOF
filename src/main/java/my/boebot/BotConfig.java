@@ -28,9 +28,6 @@ public class BotConfig {
     private boolean tofEnabled = true;
     private int tofPort = 1;
     private String robotType = "boebot";
-    private int lineSensorRightGpio = 5;
-    private int lineSensorLeftGpio = 6;
-    private int lineSensorThresholdUs = 1500;
 
     public BotConfig() {
         load();
@@ -73,9 +70,6 @@ public class BotConfig {
         tofEnabled = getBoolean("tof.enabled", true);
         tofPort = getInt("tof.port", 1);
         robotType = props.getProperty("robot.type", "boebot").trim().toLowerCase();
-        lineSensorRightGpio = getInt("line.sensor.right.gpio", 5);
-        lineSensorLeftGpio = getInt("line.sensor.left.gpio", 6);
-        lineSensorThresholdUs = getInt("line.sensor.threshold.us", 1500);
     }
 
     private int getInt(String key, int defaultValue) {
@@ -123,9 +117,6 @@ public class BotConfig {
     public boolean isTofEnabled() { return tofEnabled; }
     public int getTofPort() { return tofPort; }
     public String getRobotType() { return robotType; }
-    public int getLineSensorRightGpio() { return lineSensorRightGpio; }
-    public int getLineSensorLeftGpio() { return lineSensorLeftGpio; }
-    public int getLineSensorThresholdUs() { return lineSensorThresholdUs; }
 
     public void printSummary() {
         System.out.println("  I2C Bus         : " + i2cBus);

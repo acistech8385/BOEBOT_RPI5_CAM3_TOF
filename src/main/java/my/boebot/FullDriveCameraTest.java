@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.util.Scanner;
 
 /**
- * FullDriveCameraTest - Menu Option 18 (BOEBOT) / 19 (SumoBot): drive the robot
+ * FullDriveCameraTest - Menu Option 17 (BOEBOT) / 18 (SumoBot): drive the robot
  * while watching both cameras, all in ONE window.
  *
  * The driving keys are read by the camera window itself (no terminal focus
@@ -18,9 +18,9 @@ import java.util.Scanner;
  *   8 = forward, 2 = backward, 4 = turn left, 6 = turn right (hold), 5 = stop,
  *   Q / ESC = quit.
  *
- * Mode extras:
+ * Mode extra:
  *   boebot  - o = open gripper, c = close gripper (CH0).
- *   sumobot - live QTI line-sensor status overlay (LEFT / RIGHT / BOTH / none).
+ *   sumobot - same drive + dual camera, no gripper (SumoBot has no gripper).
  *
  * The Java side initialises the PCA9685 to 50 Hz, then launches a Python window
  * that shows both cameras and sets the wheel pulses via i2cset. On exit all
@@ -36,10 +36,7 @@ public class FullDriveCameraTest {
             # BOEBOT/SumoBot Full Test: hold-to-move drive + dual live camera
             import sys, time, subprocess
 
-            MODE       = "__MODE__"        # "boebot" or "sumobot"
-            RIGHT_GPIO = __RIGHT_GPIO__
-            LEFT_GPIO  = __LEFT_GPIO__
-            LINE_THRESH = __THRESH__       # us; RC-time above this = black
+            MODE = "__MODE__"        # "boebot" or "sumobot"
 
             def log(m): print("BOEBOT: " + str(m), flush=True)
             def fail(m): print("FAIL: " + str(m), flush=True); sys.exit(1)
@@ -87,53 +84,6 @@ public class FullDriveCameraTest {
                 drive(1500, 1500)
             def gripper(us):
                 set_pulse(GRIP_CH, us)
-
-            # -- SumoBot line sensors (QTI RC-time via lgpio) --
-            line_h = None
-            if MODE == "sumobot":
-                try:
-                    import lgpio
-                    for chip in (4, 0, 1):
-                        try:
-                            line_h = lgpio.gpiochip_open(chip)
-                            break
-                        except Exception:
-                            line_h = None
-                except ImportError:
-                    log("lgpio not installed - line sensor disabled (sudo apt-get install -y python3-lgpio)")
-
-            def rctime(pin, timeout_us=60000.0):
-                import lgpio
-                # No internal pull resistor - it would swamp the QTI's own
-                # RC-time and make the reading stop responding to the surface.
-                pull_none = getattr(lgpio, "SET_PULL_NONE", 0)
-                lgpio.gpio_claim_output(line_h, pin, 1)
-                time.sleep(0.001)
-                lgpio.gpio_free(line_h, pin)
-                lgpio.gpio_claim_input(line_h, pin, pull_none)
-                t0 = time.perf_counter()
-                limit = timeout_us / 1.0e6
-                while lgpio.gpio_read(line_h, pin) == 1:
-                    if (time.perf_counter() - t0) > limit:
-                        break
-                us = (time.perf_counter() - t0) * 1.0e6
-                lgpio.gpio_free(line_h, pin)
-                return us
-
-            def line_status():
-                if line_h is None:
-                    return "line sensor N/A"
-                try:
-                    rt = rctime(RIGHT_GPIO)
-                    lt = rctime(LEFT_GPIO)
-                except Exception:
-                    return "line sensor error"
-                lb = lt > LINE_THRESH
-                rb = rt > LINE_THRESH
-                if lb and rb:  return "LINE: BOTH"
-                if lb:         return "LINE: LEFT"
-                if rb:         return "LINE: RIGHT"
-                return "LINE: none"
 
             VIEW_W, VIEW_H = 800, 600
             CAP_W, CAP_H   = 2304, 1296
@@ -185,8 +135,6 @@ public class FullDriveCameraTest {
             MOVE_TIMEOUT = 0.4    # stop if no movement key within this (release detect)
             last_move = 0.0
             moving = False
-            line_txt = ""
-            frame_n = 0
 
             try:
                 while True:
@@ -205,12 +153,6 @@ public class FullDriveCameraTest {
                         depth_vis = cv2.resize(depth_vis, (VIEW_W, VIEW_H),
                                                interpolation=cv2.INTER_NEAREST)
 
-                    # Line sensor (sumobot) - read a few times per second.
-                    frame_n += 1
-                    if MODE == "sumobot" and (frame_n % 3 == 0):
-                        line_txt = line_status()
-                        log(line_txt)
-
                     left = rgb.copy()
                     right = depth_vis.copy()
                     cv2.putText(left, "RGB CAM0", (8, 22),
@@ -222,10 +164,6 @@ public class FullDriveCameraTest {
                         hint += "   o=open c=close"
                     cv2.putText(left, hint, (8, VIEW_H - 14),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
-                    if MODE == "sumobot" and line_txt:
-                        colour = (0, 0, 255) if "none" not in line_txt else (200, 200, 200)
-                        cv2.putText(left, line_txt, (8, 52),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, colour, 2)
 
                     combo = cv2.hconcat([left, right])
                     cv2.imshow(WINDOW, combo)
@@ -263,12 +201,6 @@ public class FullDriveCameraTest {
                 cam.stop()
                 cam.close()
                 picam2.stop()
-                if line_h is not None:
-                    try:
-                        import lgpio
-                        lgpio.gpiochip_close(line_h)
-                    except Exception:
-                        pass
                 cv2.destroyAllWindows()
                 log("Full test ended. Servos stopped.")
             """;
@@ -277,16 +209,14 @@ public class FullDriveCameraTest {
                                Context pi4j, Scanner scanner, String mode) {
         boolean sumo = "sumobot".equalsIgnoreCase(mode);
         String title = sumo ? "SumoBot" : "BOEBOT";
-        int testNo = sumo ? 19 : 18;
+        int testNo = sumo ? 18 : 17;
 
         System.out.println();
         System.out.println("============================================");
         System.out.println("  Test " + testNo + ": Full Test " + title + " - Drive + Dual Live Camera");
         System.out.println("============================================");
         System.out.println("  HOLD 8/2/4/6 to move (release = stop), 5 = stop, Q/ESC = quit.");
-        if (sumo) {
-            System.out.println("  Live line-sensor status overlay (LEFT / RIGHT / BOTH / none).");
-        } else {
+        if (!sumo) {
             System.out.println("  Gripper: o = open, c = close.");
         }
         System.out.println("  Calibrate wheels first (option 4) so they fully stop.");
@@ -334,11 +264,7 @@ public class FullDriveCameraTest {
         }
 
         // ---- Build the mode-specific script ----
-        String script = FULL_SCRIPT_TEMPLATE
-            .replace("__MODE__", sumo ? "sumobot" : "boebot")
-            .replace("__RIGHT_GPIO__", String.valueOf(config.getLineSensorRightGpio()))
-            .replace("__LEFT_GPIO__", String.valueOf(config.getLineSensorLeftGpio()))
-            .replace("__THRESH__", String.valueOf(config.getLineSensorThresholdUs()));
+        String script = FULL_SCRIPT_TEMPLATE.replace("__MODE__", sumo ? "sumobot" : "boebot");
 
         Path tmpScript;
         try {
@@ -386,7 +312,7 @@ public class FullDriveCameraTest {
             } else {
                 System.out.println("  Window exited with code " + exitCode + " - check [full] lines above.");
                 System.out.println("  POSSIBLE FIXES:");
-                System.out.println("  - sudo apt-get install -y python3-picamera2 python3-opencv python3-lgpio");
+                System.out.println("  - sudo apt-get install -y python3-picamera2 python3-opencv");
                 System.out.println("  - bash ~/Arducam_tof_camera/Install_dependencies.sh");
                 logger.logFail("Full Test " + title, "python exit " + exitCode);
                 System.out.println("[RESULT] FAIL");
