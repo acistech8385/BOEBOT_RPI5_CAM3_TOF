@@ -1,10 +1,17 @@
 # BOEBOT RPi5 Hardware Test App
 
-A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to test all BOEBOT hardware.
+<p align="center">
+  <img src="docs/images/boebot_sumobot.png" alt="BOEBOT (left, with gripper) and SumoBot (right)" width="480">
+</p>
+
+A Java 17 Maven command-line app that runs **directly on the Raspberry Pi 5** to test all BOEBOT and SumoBot hardware.
 
 > **This app does not need an IP address, username, or password.**  
 > It runs locally on the Raspberry Pi — you SSH in once, clone the repo, and run the app.  
 > Do not install Claude Code on the Raspberry Pi. Use the normal Raspberry Pi terminal only.
+
+📖 **Full setup & testing guide (with screenshots-free, copy-paste command boxes):**
+[Bahasa Malaysia](docs/BOEBOT_Setup_Testing_Guide.docx) · [English](docs/BOEBOT_Setup_Testing_Guide_EN.docx)
 
 ---
 
@@ -548,6 +555,16 @@ BOEBOT_RPI5_CAM3_TOF/
 
 - This app runs **directly on the Raspberry Pi**. No SSH credentials needed inside the app.
 - **Do not install Claude Code on the Raspberry Pi.** Use the normal Raspberry Pi terminal.
-- BOEBOT has no line sensors — line sensor code is not included.
-- No Sumobot code is included.
+- SumoBot is supported for driving + dual camera (option 18); it has no gripper.
+- BOEBOT has no line sensors — line sensor support (QTI) was tried and removed after the
+  sensor hardware was found to be damaged; see the troubleshooting guide (section 12.10)
+  for details if you want to re-add it with new sensors.
 - Built with Java 17 and Pi4J 2.6.0 (I2C via LinuxFS provider).
+
+---
+
+<p align="center">
+  <img src="docs/images/acis-logo.png" alt="ACIS Technology" height="32">
+  &nbsp;&nbsp;&nbsp;
+  <img src="docs/images/faix-logo.jpg" alt="FAIX — Fakulti Kecerdasan Buatan dan Keselamatan Siber, UTeM" height="32">
+</p>
