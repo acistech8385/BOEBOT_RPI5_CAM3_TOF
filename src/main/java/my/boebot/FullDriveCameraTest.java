@@ -104,10 +104,13 @@ public class FullDriveCameraTest {
 
             def rctime(pin, timeout_us=8000.0):
                 import lgpio
+                # No internal pull resistor - it would swamp the QTI's own
+                # RC-time and make the reading stop responding to the surface.
+                pull_none = getattr(lgpio, "SET_PULL_NONE", 0)
                 lgpio.gpio_claim_output(line_h, pin, 1)
                 time.sleep(0.001)
                 lgpio.gpio_free(line_h, pin)
-                lgpio.gpio_claim_input(line_h, pin)
+                lgpio.gpio_claim_input(line_h, pin, pull_none)
                 t0 = time.perf_counter()
                 limit = timeout_us / 1.0e6
                 while lgpio.gpio_read(line_h, pin) == 1:

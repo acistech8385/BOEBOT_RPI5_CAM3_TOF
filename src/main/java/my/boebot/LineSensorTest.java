@@ -54,12 +54,22 @@ public class LineSensorTest {
             if h is None:
                 fail("Cannot open any GPIO chip (tried 4, 0, 1).")
 
+            # No internal pull resistor for the RC-time read: a pull-up would
+            # hold the line high almost indefinitely (always times out ->
+            # always reads as "black"); a pull-down would drain the
+            # capacitor instantly (always reads as "white"). Either way the
+            # QTI's own RC-time (470 ohm + capacitor + phototransistor)
+            # would be swamped and the reading would stop responding to the
+            # surface, which matches "detects only when unplugged, no
+            # change when plugged in".
+            PULL_NONE = getattr(lgpio, "SET_PULL_NONE", 0)
+
             def rctime(pin, timeout_us=8000.0):
                 # Charge the capacitor, then time the discharge while input is HIGH.
                 lgpio.gpio_claim_output(h, pin, 1)
                 time.sleep(0.001)
                 lgpio.gpio_free(h, pin)
-                lgpio.gpio_claim_input(h, pin)
+                lgpio.gpio_claim_input(h, pin, PULL_NONE)
                 t0 = time.perf_counter()
                 limit = timeout_us / 1.0e6
                 while lgpio.gpio_read(h, pin) == 1:
