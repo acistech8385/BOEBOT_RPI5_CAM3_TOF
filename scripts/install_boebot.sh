@@ -374,6 +374,20 @@ else
     fi
 fi
 
+# lgpio - needed for the SumoBot line sensor test (option 17, Pi 5 GPIO)
+if python3 -c "import lgpio" 2>/dev/null; then
+    print_ok "lgpio is available. Line sensor test is ready."
+else
+    print_install "python3-lgpio (needed for option 17 line sensor test)..."
+    sudo apt-get install -y python3-lgpio -qq 2>/dev/null || true
+    if python3 -c "import lgpio" 2>/dev/null; then
+        print_ok "python3-lgpio installed."
+    else
+        print_warn "lgpio not available. Option 17 line sensor test will not work."
+        echo "  Try: sudo apt-get install -y python3-lgpio"
+    fi
+fi
+
 # ArducamDepthCamera module — auto-install if missing
 if python3 -c "import ArducamDepthCamera" 2>/dev/null; then
     print_ok "ArducamDepthCamera SDK is importable. ToF tests are ready."

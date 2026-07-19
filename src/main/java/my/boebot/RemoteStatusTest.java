@@ -4,7 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 /**
- * RemoteStatusTest - Menu Option 19: show IP address and remote status.
+ * RemoteStatusTest - Menu Option 20: show IP address and remote status.
  *
  * Prints the Pi's hostname, IP address, and the SSH / XRDP service status,
  * plus the Remote Desktop connection instructions.
@@ -17,11 +17,11 @@ public class RemoteStatusTest {
     public static boolean run(AppLogger logger) {
         System.out.println();
         System.out.println("====================================");
-        System.out.println("  Test 19: IP Address and Remote Status");
+        System.out.println("  Test 20: IP Address and Remote Status");
         System.out.println("====================================");
 
         logger.logSeparator();
-        logger.log("TEST 19: IP Address and Remote Status");
+        logger.log("TEST 20: IP Address and Remote Status");
 
         String hostname = runCmd("hostname");
         String ip       = runCmd("hostname", "-I");

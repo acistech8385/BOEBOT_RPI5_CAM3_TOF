@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.util.Scanner;
 
 /**
- * FullDriveCameraTest - Menu Option 17: drive the robot while watching both
+ * FullDriveCameraTest - Menu Option 18: drive the robot while watching both
  * cameras, all in ONE window.
  *
  * Unlike option 8 (which drives from the terminal), here the driving keys are
@@ -175,13 +175,13 @@ public class FullDriveCameraTest {
                                Context pi4j, Scanner scanner) {
         System.out.println();
         System.out.println("============================================");
-        System.out.println("  Test 17: Full Test - Drive + Dual Live Camera");
+        System.out.println("  Test 18: Full Test - Drive + Dual Live Camera");
         System.out.println("============================================");
         System.out.println("  Drive IN the camera window: 8 fwd 2 back 4 left 6 right 5 stop Q quit");
         System.out.println("  Calibrate wheels first (option 4) so they fully stop.");
 
         logger.logSeparator();
-        logger.log("TEST 17: Full Test - Drive + Dual Live Camera");
+        logger.log("TEST 18: Full Test - Drive + Dual Live Camera");
 
         if (pi4j == null) {
             System.out.println("[RESULT] FAIL - Pi4J context not available.");
